@@ -32,8 +32,9 @@ function clamp(n: number, range: RepRange): number {
 }
 
 function validate(input: DecisionInput): void {
-  if (!Number.isInteger(input.workingWeightG) || input.workingWeightG <= 0) {
-    throw new Error(`workingWeightG must be a positive integer of grams: ${input.workingWeightG}`);
+  // 0 g is bodyweight with no added load.
+  if (!Number.isInteger(input.workingWeightG) || input.workingWeightG < 0) {
+    throw new Error(`workingWeightG must be a non-negative integer of grams: ${input.workingWeightG}`);
   }
   for (const s of input.sets) {
     if (!Number.isInteger(s.reps) || s.reps < 0) throw new Error(`reps must be a non-negative integer: ${s.reps}`);

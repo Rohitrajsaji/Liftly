@@ -17,6 +17,10 @@ Architecture plan (approved 2026-10-07): https://claude.ai/code/artifact/2123b99
 | C7 | First save without an account, offline | The in-progress workout stays on the device, unsynced, and attaches to the account when sign-in succeeds. Nothing is uploaded before the account exists. | PRD AC-2 |
 | C8 | Calibration flag | Calibration is recorded per exercise (decision type, ramp sets). The session flag is derived. | DATA_MODEL |
 | Q1 | Deload after a weight increase (TESTING L-03, L-05) | Engine rule unchanged: 0.90 × the weight just lifted, then the highest step at or below it on that exercise's real ladder. L-03 and L-05 corrected to 8 kg; L-09 added for a 5, 7.5, 10 kg ladder (→ 7.5 kg). Decided 2026-10-08. | TESTING L-03, L-05, L-09; ENGINE_QUESTIONS Q1 |
+| P1 | Swap-only exercise metadata (PROGRAMS_QUESTIONS PQ1) | Class and equipment set by Rohit for the 11 swap-only exercises; all are now in PROGRAMS.md §3a. "Overhead Triceps Extension" is named Overhead Cable Triceps Extension (isolation, cable). Decided 2026-10-08. | PROGRAMS §3a |
+| P2 | Swaps that duplicate an exercise in the same workout (PQ2) | 4-day Upper 2: Seated Cable Row now swaps to One-Arm Dumbbell Row. 4-day Lower 1: Leg Extension now swaps to Goblet Squat. Decided 2026-10-08. | PROGRAMS §3 4-day, §3a |
+| P3 | 45-Degree Back Extension progression (PQ3) | Kept. The ladder holds added load: 0 kg is bodyweight only, then the loads the user's gym actually has. The engine accepts a 0 g ladder step; every rule runs unchanged on the added load. Covered by TESTING L-10 to L-13. Decided 2026-10-08. | PROGRAMS §6, TESTING L-10..L-13, DATA_MODEL |
+| P4 | Assisted Pull-up (PQ4) | Removed as a V1 swap (its ladder runs backwards). Replaced by Machine Pulldown (compound, machine, 8–12) in both programs. Decided 2026-10-08. | PROGRAMS §3, §3a |
 
 ## 2. Defaults used by the code for open items (not decided)
 

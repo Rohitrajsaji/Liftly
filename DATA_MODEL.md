@@ -33,7 +33,7 @@ Field names are conceptual. Types and formats are chosen during architecture.
 | gym_id | |
 | exercise_id | One ladder per exercise per gym (DECISIONS.md, C2). Created from an equipment-type template, then edited |
 | equipment_type | barbell, dumbbell, machine, cable |
-| load_definition | total (barbell), per hand (dumbbell), displayed value (machine/cable) |
+| load_definition | total (barbell), per hand (dumbbell), displayed value (machine/cable), added load (bodyweight exercises; a 0 kg step is bodyweight only) |
 | loads_kg | Ordered list of available loads in kg |
 
 ### Exercise

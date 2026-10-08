@@ -1,6 +1,5 @@
-// The V1 exercise library: every exercise in PROGRAMS.md, including those that appear only as swaps.
-// Type and equipment come from PROGRAMS.md program rows. Swap-only exercises have them only when
-// another spec document states them; the rest are null until Rohit supplies them (PROGRAMS_QUESTIONS.md).
+// The V1 exercise library: every exercise in PROGRAMS.md (revision 1.1), including those that appear
+// only as swaps (section 3a). Loads always move along the user's gym ladder; nothing here sets increments.
 
 import type { Exercise } from "./types";
 
@@ -27,21 +26,21 @@ export const EXERCISES = {
   seated_calf_raise: { id: "seated_calf_raise", name: "Seated Calf Raise", type: "isolation", equipment: "machine", source: P },
   ab_crunch_machine: { id: "ab_crunch_machine", name: "Ab Crunch Machine", type: "isolation", equipment: "machine", source: P },
 
-  // Swap-only exercises stated elsewhere in the spec.
-  dumbbell_bench_press: { id: "dumbbell_bench_press", name: "Dumbbell Bench Press", type: "compound", equipment: "dumbbell", source: "TESTING.md" },
-  dumbbell_lateral_raise: { id: "dumbbell_lateral_raise", name: "Dumbbell Lateral Raise", type: "isolation", equipment: "dumbbell", source: "TESTING.md" },
-
-  // Swap-only exercises with no stated type or equipment.
-  assisted_pull_up: { id: "assisted_pull_up", name: "Assisted Pull-up", type: null, equipment: null, source: null },
-  lying_leg_curl: { id: "lying_leg_curl", name: "Lying Leg Curl", type: null, equipment: null, source: null },
-  overhead_triceps_extension: { id: "overhead_triceps_extension", name: "Overhead Triceps Extension", type: null, equipment: null, source: null },
-  incline_machine_press: { id: "incline_machine_press", name: "Incline Machine Press", type: null, equipment: null, source: null },
-  cable_bicep_curl: { id: "cable_bicep_curl", name: "Cable Bicep Curl", type: null, equipment: null, source: null },
-  machine_shoulder_press: { id: "machine_shoulder_press", name: "Machine Shoulder Press", type: null, equipment: null, source: null },
-  cable_crossover: { id: "cable_crossover", name: "Cable Crossover", type: null, equipment: null, source: null },
-  leg_press_calf_raise: { id: "leg_press_calf_raise", name: "Leg Press Calf Raise", type: null, equipment: null, source: null },
-  machine_glute_kickback: { id: "machine_glute_kickback", name: "Machine Glute Kickback", type: null, equipment: null, source: null },
-  cable_crunch: { id: "cable_crunch", name: "Cable Crunch", type: null, equipment: null, source: null },
+  // Swap-only exercises (PROGRAMS.md section 3a).
+  dumbbell_bench_press: { id: "dumbbell_bench_press", name: "Dumbbell Bench Press", type: "compound", equipment: "dumbbell", source: P },
+  lying_leg_curl: { id: "lying_leg_curl", name: "Lying Leg Curl", type: "isolation", equipment: "machine", source: P },
+  overhead_cable_triceps_extension: { id: "overhead_cable_triceps_extension", name: "Overhead Cable Triceps Extension", type: "isolation", equipment: "cable", source: P },
+  incline_machine_press: { id: "incline_machine_press", name: "Incline Machine Press", type: "compound", equipment: "machine", source: P },
+  cable_bicep_curl: { id: "cable_bicep_curl", name: "Cable Bicep Curl", type: "isolation", equipment: "cable", source: P },
+  machine_shoulder_press: { id: "machine_shoulder_press", name: "Machine Shoulder Press", type: "compound", equipment: "machine", source: P },
+  cable_crossover: { id: "cable_crossover", name: "Cable Crossover", type: "isolation", equipment: "cable", source: P },
+  dumbbell_lateral_raise: { id: "dumbbell_lateral_raise", name: "Dumbbell Lateral Raise", type: "isolation", equipment: "dumbbell", source: P },
+  leg_press_calf_raise: { id: "leg_press_calf_raise", name: "Leg Press Calf Raise", type: "isolation", equipment: "machine", source: P },
+  machine_glute_kickback: { id: "machine_glute_kickback", name: "Machine Glute Kickback", type: "isolation", equipment: "machine", source: P },
+  cable_crunch: { id: "cable_crunch", name: "Cable Crunch", type: "isolation", equipment: "cable", source: P },
+  machine_pulldown: { id: "machine_pulldown", name: "Machine Pulldown", type: "compound", equipment: "machine", source: P },
+  // [ASSUMPTION] class and equipment inferred from the name; PROGRAMS_QUESTIONS.md PQ5.
+  one_arm_dumbbell_row: { id: "one_arm_dumbbell_row", name: "One-Arm Dumbbell Row", type: "compound", equipment: "dumbbell", source: P },
 } as const satisfies Record<string, Exercise>;
 
 export type ExerciseId = keyof typeof EXERCISES;
@@ -50,6 +49,24 @@ export function exercise(id: string): Exercise {
   const e = (EXERCISES as Record<string, Exercise>)[id];
   if (e === undefined) throw new Error(`Unknown exercise: ${id}`);
   return e;
+}
+
+/**
+ * How a load is read (DATA_MODEL ladder load_definition). Bodyweight exercises record added load:
+ * 0 kg is bodyweight only (PROGRAMS.md section 6).
+ */
+export function loadDefinition(id: string): "total" | "per_hand" | "displayed" | "added_load" {
+  switch (exercise(id).equipment) {
+    case "dumbbell":
+      return "per_hand";
+    case "machine":
+    case "cable":
+      return "displayed";
+    case "bodyweight":
+      return "added_load";
+    case null:
+      throw new Error(`Exercise ${id} has no equipment`);
+  }
 }
 
 /** True when the engine can prescribe this exercise: its type and equipment are known. */

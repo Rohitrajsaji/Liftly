@@ -1,6 +1,6 @@
-// Consistency checks on the reference data, and the known gaps listed in PROGRAMS_QUESTIONS.md.
+// Consistency checks on the reference data, including the 2026-10-08 program decisions (DECISIONS.md P1 to P4).
 import { describe, expect, it } from "vitest";
-import { EXERCISES, isPrescribable, nextSlotKey, PROGRAMS, slot, swapFor } from "../src";
+import { EXERCISES, exercise, isPrescribable, loadDefinition, nextSlotKey, PROGRAMS, slot, swapFor } from "../src";
 
 const programs = Object.values(PROGRAMS);
 const rows = programs.flatMap((p) => p.slots.flatMap((s) => s.exercises.map((r) => ({ program: p.id, slot: s.key, ...r }))));
@@ -26,20 +26,27 @@ describe("catalog integrity", () => {
     for (const p of programs) for (const s of p.slots) expect(s.exercises.map((e) => e.order)).toEqual(s.exercises.map((_, i) => i + 1));
   });
 
-  // Known gaps, asserted so they stay visible until Rohit closes them (PROGRAMS_QUESTIONS.md).
-  it("PQ1: swap-only exercises without a stated type or equipment", () => {
-    const missing = Object.values(EXERCISES).filter((e) => e.type === null).map((e) => e.id).sort();
-    expect(missing).toEqual([
-      "assisted_pull_up", "cable_bicep_curl", "cable_crossover", "cable_crunch", "incline_machine_press",
-      "leg_press_calf_raise", "lying_leg_curl", "machine_glute_kickback", "machine_shoulder_press", "overhead_triceps_extension",
-    ]);
+  it("P1: every exercise in the library has a class and equipment", () => {
+    expect(Object.values(EXERCISES).filter((e) => !isPrescribable(e.id)).map((e) => e.id)).toEqual([]);
   });
-  it("PQ2: swaps that are already in the same workout", () => {
-    const dupes = rows.filter((r) => slot(r.program, r.slot).exercises.some((e) => e.exerciseId === r.swapId)).map((r) => `${r.slot}:${r.exerciseId}->${r.swapId}`);
-    expect(dupes.sort()).toEqual(["L1:leg_extension->leg_press", "U2:seated_cable_row->chest_supported_row"]);
+  it("P2: no swap repeats an exercise already in the same workout", () => {
+    const dupes = rows.filter((r) => slot(r.program, r.slot).exercises.some((e) => e.exerciseId === r.swapId));
+    expect(dupes).toEqual([]);
   });
-  it("PQ3: bodyweight exercises have no load ladder for the engine to move along", () => {
+  it("P3: 45-Degree Back Extension is bodyweight and records added load (0 kg = bodyweight)", () => {
     expect(Object.values(EXERCISES).filter((e) => e.equipment === "bodyweight").map((e) => e.id)).toEqual(["back_extension_45"]);
+    expect(loadDefinition("back_extension_45")).toBe("added_load");
+  });
+  it("P4: Assisted Pull-up is gone; Machine Pulldown is the Lat Pulldown swap in both programs", () => {
+    expect(Object.keys(EXERCISES)).not.toContain("assisted_pull_up");
+    expect(swapFor("3-day", "lat_pulldown")).toBe("machine_pulldown");
+    expect(swapFor("4-day", "lat_pulldown")).toBe("machine_pulldown");
+    expect(exercise("machine_pulldown")).toMatchObject({ type: "compound", equipment: "machine" });
+  });
+  it("load definitions follow DATA_MODEL: dumbbell per hand, machine and cable as displayed", () => {
+    expect(loadDefinition("goblet_squat")).toBe("per_hand");
+    expect(loadDefinition("leg_press")).toBe("displayed");
+    expect(loadDefinition("lat_pulldown")).toBe("displayed");
   });
 });
 
@@ -64,5 +71,7 @@ describe("sequence (US-18)", () => {
     expect(swapFor("3-day", "machine_chest_press")).toBe("dumbbell_bench_press");
     expect(swapFor("3-day", "chest_supported_row")).toBe("seated_cable_row");
     expect(swapFor("4-day", "chest_supported_row")).toBe("lat_pulldown");
+    expect(swapFor("4-day", "seated_cable_row")).toBe("one_arm_dumbbell_row");
+    expect(swapFor("4-day", "leg_extension")).toBe("goblet_squat");
   });
 });

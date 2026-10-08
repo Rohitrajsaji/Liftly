@@ -118,6 +118,10 @@ Interpretation used (PROGRESSION_ENGINE.md section 7): compare the current sessi
 | L-07 | Ladder missing an intermediate step | Engine uses the next available step only. Never computes an off-ladder weight. |
 | L-08 | Requested step doesn't exist (top of the ladder) | Keep W. [ASSUMPTION: log code for this case; not defined in v1.0] |
 | L-09 | Deload from 10 kg on a 2.5 kg ladder (5, 7.5, 10 kg) | 0.90 × 10 = 9.0. Highest step ≤ 9.0 → 7.5 kg. The result depends on the exercise's real ladder, never a computed 9 kg. |
+| L-10 | Bodyweight exercise with external load (45-Degree Back Extension), ladder 0, 2.5, 5, 10, 15 kg added. At 0 kg (bodyweight), 15, 15, 15 Good | Row 4: +1 step → 2.5 kg added, target 10. Jump flag (any load above bodyweight). (PROGRAMS.md 1.1, DECISIONS.md P3) |
+| L-11 | Same ladder, 2.5 kg added, two or more misses | Row 2: 0.90 × 2.5 = 2.25 → 0 kg (bodyweight only). |
+| L-12 | Same ladder, bodyweight only, two or more misses | Row 2: stays at bodyweight (bottom of the ladder). |
+| L-13 | Same ladder, 5 kg added, lowest set ≥ T | Row 4: next step is 10 kg (the gym's real step), never a fixed increment. |
 
 ## 9. Reason codes
 

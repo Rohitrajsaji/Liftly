@@ -2,6 +2,8 @@
 
 This document defines the fixed beginner hypertrophy programs used by Liftly V1.
 
+**Revision 1.1 (2026-10-08, approved by Rohit):** swap-only exercises given full metadata (section 3a); Assisted Pull-up replaced by Machine Pulldown; Overhead Triceps Extension named Overhead Cable Triceps Extension; Upper 2 Seated Cable Row swap changed to One-Arm Dumbbell Row and Lower 1 Leg Extension swap changed to Goblet Squat, so no swap repeats an exercise in the same workout; 45-Degree Back Extension progresses by external load (section 6). See DECISIONS.md, P1 to P4.
+
 These programs are designed for users with approximately **0–12 months of training experience** whose primary goal is **muscle hypertrophy** in a standard commercial gym.
 
 The programs are intended to work with **Progression Engine v1.0**. Exercise order, working sets, rep ranges, exercise class, equipment type, and approved swaps should be treated as reference data for V1.
@@ -42,9 +44,9 @@ Free weights and machines can both support hypertrophy. Liftly uses a mixture of
 |---:|---|---|---|---:|---:|---|
 | 1 | Leg Press | Compound | Machine | 3 | 8–12 | Goblet Squat |
 | 2 | Machine Chest Press | Compound | Machine | 3 | 8–12 | Dumbbell Bench Press |
-| 3 | Lat Pulldown | Compound | Cable | 3 | 8–12 | Assisted Pull-up |
+| 3 | Lat Pulldown | Compound | Cable | 3 | 8–12 | Machine Pulldown |
 | 4 | Seated Leg Curl | Isolation | Machine | 3 | 10–15 | Lying Leg Curl |
-| 5 | Triceps Pushdown | Isolation | Cable | 2 | 10–15 | Overhead Triceps Extension |
+| 5 | Triceps Pushdown | Isolation | Cable | 2 | 10–15 | Overhead Cable Triceps Extension |
 
 ## Workout B
 
@@ -80,9 +82,9 @@ Free weights and machines can both support hypertrophy. Liftly uses a mixture of
 | Order | Exercise | Class | Equipment | Sets | Reps | Approved Swap |
 |---:|---|---|---|---:|---:|---|
 | 1 | Machine Chest Press | Compound | Machine | 3 | 8–12 | Dumbbell Bench Press |
-| 2 | Lat Pulldown | Compound | Cable | 3 | 8–12 | Assisted Pull-up |
+| 2 | Lat Pulldown | Compound | Cable | 3 | 8–12 | Machine Pulldown |
 | 3 | Dumbbell Shoulder Press | Compound | Dumbbell | 3 | 8–12 | Machine Shoulder Press |
-| 4 | Triceps Pushdown | Isolation | Cable | 3 | 10–15 | Overhead Triceps Extension |
+| 4 | Triceps Pushdown | Isolation | Cable | 3 | 10–15 | Overhead Cable Triceps Extension |
 | 5 | Dumbbell Bicep Curl | Isolation | Dumbbell | 3 | 10–15 | Cable Bicep Curl |
 
 ## Lower 1
@@ -91,7 +93,7 @@ Free weights and machines can both support hypertrophy. Liftly uses a mixture of
 |---:|---|---|---|---:|---:|---|
 | 1 | Leg Press | Compound | Machine | 3 | 8–12 | Goblet Squat |
 | 2 | Dumbbell Romanian Deadlift | Compound | Dumbbell | 3 | 8–12 | Seated Leg Curl |
-| 3 | Leg Extension | Isolation | Machine | 3 | 10–15 | Leg Press |
+| 3 | Leg Extension | Isolation | Machine | 3 | 10–15 | Goblet Squat |
 | 4 | Standing Calf Raise | Isolation | Machine | 3 | 10–15 | Leg Press Calf Raise |
 
 ## Upper 2
@@ -99,7 +101,7 @@ Free weights and machines can both support hypertrophy. Liftly uses a mixture of
 | Order | Exercise | Class | Equipment | Sets | Reps | Approved Swap |
 |---:|---|---|---|---:|---:|---|
 | 1 | Incline Dumbbell Press | Compound | Dumbbell | 3 | 8–12 | Incline Machine Press |
-| 2 | Seated Cable Row | Compound | Cable | 3 | 8–12 | Chest-Supported Row |
+| 2 | Seated Cable Row | Compound | Cable | 3 | 8–12 | One-Arm Dumbbell Row |
 | 3 | Chest-Supported Row | Compound | Machine | 3 | 8–12 | Lat Pulldown |
 | 4 | Machine Pec Deck | Isolation | Machine | 3 | 10–15 | Cable Crossover |
 | 5 | Cable Lateral Raise | Isolation | Cable | 3 | 10–15 | Dumbbell Lateral Raise |
@@ -113,6 +115,30 @@ Free weights and machines can both support hypertrophy. Liftly uses a mixture of
 | 3 | 45-Degree Back Extension | Isolation | Bodyweight | 3 | 10–15 | Machine Glute Kickback |
 | 4 | Seated Calf Raise | Isolation | Machine | 3 | 10–15 | Standing Calf Raise |
 | 5 | Ab Crunch Machine | Isolation | Machine | 3 | 10–15 | Cable Crunch |
+
+---
+
+# 3a. Swap Exercise Reference
+
+Exercises used only as approved swaps. Every load change still uses the exercise's real ladder at the user's gym.
+
+| Exercise | Class | Equipment | Reps |
+|---|---|---|---:|
+| Dumbbell Bench Press | Compound | Dumbbell | 8–12 |
+| Lying Leg Curl | Isolation | Machine | 10–15 |
+| Overhead Cable Triceps Extension | Isolation | Cable | 10–15 |
+| Incline Machine Press | Compound | Machine | 8–12 |
+| Cable Bicep Curl | Isolation | Cable | 10–15 |
+| Machine Shoulder Press | Compound | Machine | 8–12 |
+| Cable Crossover | Isolation | Cable | 10–15 |
+| Dumbbell Lateral Raise | Isolation | Dumbbell | 10–15 |
+| Leg Press Calf Raise | Isolation | Machine | 10–15 |
+| Machine Glute Kickback | Isolation | Machine | 10–15 |
+| Cable Crunch | Isolation | Cable | 10–15 |
+| Machine Pulldown | Compound | Machine | 8–12 |
+| One-Arm Dumbbell Row | Compound | Dumbbell | 8–12 |
+
+[ASSUMPTION: One-Arm Dumbbell Row metadata inferred from its name and the other rows; confirm.] Swap-only exercises have no swap of their own (README open item 12).
 
 ---
 
@@ -185,6 +211,11 @@ These programs must follow the existing **Progression Engine v1.0** rules.
 
 - Rep range: **10–15**
 - Progression uses the exercise's real gym load ladder.
+
+### Bodyweight exercises with external load
+
+- 45-Degree Back Extension starts at bodyweight. Its ladder's first step is 0 kg added load, and the next steps are the extra loads the user's gym actually has (for example plates or dumbbells held).
+- Progression moves along that ladder like any other exercise. Loads are recorded as added load in kg.
 
 ### Program sequence
 

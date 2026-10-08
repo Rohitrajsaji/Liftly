@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { decideNext, highestAtOrBelow, prescribe, REASON_CODES, type DecisionInput, type Effort } from "../src";
 
 const effort = fc.constantFrom<Effort>("easy", "good", "hard", "failed");
-const ladder = fc.uniqueArray(fc.integer({ min: 1, max: 400 }).map((n) => n * 500), { minLength: 1, maxLength: 30 });
+const ladder = fc.uniqueArray(fc.integer({ min: 0, max: 400 }).map((n) => n * 500), { minLength: 1, maxLength: 30 });
 
 const decisionInput: fc.Arbitrary<DecisionInput> = ladder.chain((l) =>
   fc.record({

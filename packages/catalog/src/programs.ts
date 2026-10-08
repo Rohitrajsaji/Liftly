@@ -1,4 +1,4 @@
-// The frozen V1 programs, transcribed from PROGRAMS.md. test/programs.test.ts checks every field
+// The frozen V1 programs, transcribed from PROGRAMS.md (revision 1.1). test/programs.test.ts checks every field
 // against that file, so any edit here that drifts from it fails.
 
 import type { ExerciseId } from "./exercises";
@@ -17,9 +17,9 @@ export const THREE_DAY: Program = {
       exercises: [
         row(1, "leg_press", 3, "goblet_squat"),
         row(2, "machine_chest_press", 3, "dumbbell_bench_press"),
-        row(3, "lat_pulldown", 3, "assisted_pull_up"),
+        row(3, "lat_pulldown", 3, "machine_pulldown"),
         row(4, "seated_leg_curl", 3, "lying_leg_curl"),
-        row(5, "triceps_pushdown", 2, "overhead_triceps_extension"),
+        row(5, "triceps_pushdown", 2, "overhead_cable_triceps_extension"),
       ],
     },
     {
@@ -57,9 +57,9 @@ export const FOUR_DAY: Program = {
       name: "Upper 1",
       exercises: [
         row(1, "machine_chest_press", 3, "dumbbell_bench_press"),
-        row(2, "lat_pulldown", 3, "assisted_pull_up"),
+        row(2, "lat_pulldown", 3, "machine_pulldown"),
         row(3, "dumbbell_shoulder_press", 3, "machine_shoulder_press"),
-        row(4, "triceps_pushdown", 3, "overhead_triceps_extension"),
+        row(4, "triceps_pushdown", 3, "overhead_cable_triceps_extension"),
         row(5, "dumbbell_bicep_curl", 3, "cable_bicep_curl"),
       ],
     },
@@ -69,7 +69,7 @@ export const FOUR_DAY: Program = {
       exercises: [
         row(1, "leg_press", 3, "goblet_squat"),
         row(2, "dumbbell_romanian_deadlift", 3, "seated_leg_curl"),
-        row(3, "leg_extension", 3, "leg_press"),
+        row(3, "leg_extension", 3, "goblet_squat"),
         row(4, "standing_calf_raise", 3, "leg_press_calf_raise"),
       ],
     },
@@ -78,7 +78,7 @@ export const FOUR_DAY: Program = {
       name: "Upper 2",
       exercises: [
         row(1, "incline_dumbbell_press", 3, "incline_machine_press"),
-        row(2, "seated_cable_row", 3, "chest_supported_row"),
+        row(2, "seated_cable_row", 3, "one_arm_dumbbell_row"),
         row(3, "chest_supported_row", 3, "lat_pulldown"),
         row(4, "machine_pec_deck", 3, "cable_crossover"),
         row(5, "cable_lateral_raise", 3, "dumbbell_lateral_raise"),

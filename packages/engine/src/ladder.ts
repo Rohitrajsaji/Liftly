@@ -7,11 +7,15 @@ export interface LadderResult {
   readonly ladderEdge: boolean;
 }
 
-/** Sorted, de-duplicated ladder. Throws on an empty ladder or a non-positive or non-integer load. */
+/**
+ * Sorted, de-duplicated ladder. A 0 g step is allowed: it is bodyweight with no added load
+ * (PROGRAMS.md 1.1, bodyweight exercises with external load). Throws on an empty ladder or a
+ * negative or non-integer load.
+ */
 export function normalizeLadder(ladderG: readonly number[]): number[] {
   if (ladderG.length === 0) throw new Error("Ladder is empty");
   for (const g of ladderG) {
-    if (!Number.isInteger(g) || g <= 0) throw new Error(`Ladder load must be a positive integer of grams: ${g}`);
+    if (!Number.isInteger(g) || g < 0) throw new Error(`Ladder load must be a non-negative integer of grams: ${g}`);
   }
   return [...new Set(ladderG)].sort((a, b) => a - b);
 }

@@ -43,7 +43,7 @@ export interface DecisionInput {
   readonly exerciseType: ExerciseType;
   /** The gym's ladder for this exercise, in grams. Need not be sorted. */
   readonly ladderG: readonly number[];
-  /** W: the weight used for this session's working sets. */
+  /** W: the weight used for this session's working sets. For bodyweight exercises, the added load (0 = bodyweight only). */
   readonly workingWeightG: number;
   /** Working sets logged this session (ramp sets excluded). */
   readonly sets: readonly WorkingSet[];

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REP_RANGES } from "@liftly/engine";
 import { describe, expect, it } from "vitest";
-import { exercise, PROGRAMS, type ProgramId } from "../src";
+import { EXERCISES, exercise, PROGRAMS, type ProgramId } from "../src";
 
 const MD = readFileSync(join(__dirname, "..", "..", "..", "PROGRAMS.md"), "utf8");
 
@@ -62,4 +62,20 @@ describe("catalog matches PROGRAMS.md exactly", () => {
       });
     }
   }
+
+  it("swap-only exercises: class, equipment and rep range match section 3a", () => {
+    const start = MD.indexOf("\n# 3a. Swap Exercise Reference");
+    const body = MD.slice(start, MD.indexOf("\n# 4.", start));
+    const md = body
+      .split("\n")
+      .filter((l) => l.startsWith("| ") && !l.startsWith("| Exercise") && !l.startsWith("|---"))
+      .map((l) => l.split("|").slice(1, -1).map((x) => x.trim()));
+    const programIds = new Set(Object.values(PROGRAMS).flatMap((p) => p.slots.flatMap((s) => s.exercises.map((e) => e.exerciseId))));
+    const swapOnly = Object.values(EXERCISES).filter((e) => !programIds.has(e.id));
+    const ours = swapOnly.map((e) => {
+      const range = e.type === null ? null : REP_RANGES[e.type];
+      return [e.name, e.type === null ? "" : cap(e.type), e.equipment === null ? "" : cap(e.equipment), range === null ? "" : `${range.bottom}–${range.top}`];
+    });
+    expect(ours.sort()).toEqual(md.sort());
+  });
 });

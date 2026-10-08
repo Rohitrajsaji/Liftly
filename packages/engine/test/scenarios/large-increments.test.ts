@@ -67,3 +67,26 @@ describe("TESTING.md section 8: large increments", () => {
     expect(stepsUp(kgs(12, 14, 16), kg(14), 2)).toEqual({ weightG: kg(16), ladderEdge: true });
   });
 });
+
+describe("bodyweight exercise with external load (PROGRAMS.md 1.1, DECISIONS.md P3)", () => {
+  // 45-Degree Back Extension: 0 kg = bodyweight only, then the added loads the gym actually has.
+  const backExt = kgs(0, 2.5, 5, 10, 15);
+  const bw = (over: Parameters<typeof input>[0]) => input({ exerciseType: "isolation", ladderG: backExt, ...over });
+
+  it("L-10: bodyweight only, 15,15,15 Good -> row 4, first added load (2.5 kg), target 10", () => {
+    const d = decideNext(bw({ workingWeightG: 0, sets: sets([15, 15, 15]) }));
+    expect(d).toMatchObject({ ruleRow: 4, nextG: kg(2.5), nextTargetReps: 10, jump: true, nextIsFirstExposure: true });
+  });
+  it("L-11: 2.5 kg added, two misses -> row 2, 0.90 x 2.5 = 2.25 -> back to bodyweight (0 kg)", () => {
+    const d = decideNext(bw({ workingWeightG: kg(2.5), sets: sets([9, 8, 8]) }));
+    expect(d).toMatchObject({ ruleRow: 2, nextG: 0, ladderEdge: false });
+  });
+  it("L-12: at bodyweight with two misses -> stays at bodyweight (bottom of the ladder)", () => {
+    const d = decideNext(bw({ workingWeightG: 0, sets: sets([8, 8, 8]) }));
+    expect(d).toMatchObject({ ruleRow: 2, nextG: 0 });
+  });
+  it("L-13: uneven gym steps are followed exactly (5 -> 10 kg), never a fixed increment", () => {
+    const d = decideNext(bw({ workingWeightG: kg(5), sets: sets([15, 15, 15]) }));
+    expect(d?.nextG).toBe(kg(10));
+  });
+});

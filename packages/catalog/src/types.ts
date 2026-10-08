@@ -10,11 +10,11 @@ export interface Exercise {
   readonly id: string;
   /** Exact name from PROGRAMS.md. */
   readonly name: string;
-  /** Null when no spec document gives it (swap-only exercises; see PROGRAMS_QUESTIONS.md). */
+  /** Null only while a spec document has not given it. */
   readonly type: ExerciseType | null;
   readonly equipment: Equipment | null;
   /** Where type and equipment come from. */
-  readonly source: "PROGRAMS.md" | "TESTING.md" | null;
+  readonly source: "PROGRAMS.md" | null;
 }
 
 export interface SlotExercise {

@@ -24,7 +24,7 @@ Node 22 and pnpm 10. From the repository root:
 - `packages/engine/src` imports nothing outside itself and never reads the clock, randomness, network, storage or Claude (`test/purity.test.ts` enforces this).
 - Loads are integer grams everywhere inside the engine; factors are per-mille (`900` = 0.90). Convert kg only at the app's edges (`kgToG`).
 - Defaults for [OPEN]/[ASSUMPTION] items live in `src/assumptions.ts` or in the one function marked "(default)", and are listed in `DECISIONS.md` section 2.
-- `packages/catalog` is checked field by field against PROGRAMS.md (`test/programs.test.ts`). Change PROGRAMS.md first, never only the catalog. Swap-only exercises with unknown class are `null` until supplied (PROGRAMS_QUESTIONS.md).
+- `packages/catalog` is checked field by field against PROGRAMS.md (`test/programs.test.ts`). Change PROGRAMS.md first, never only the catalog. Swap-only exercises are in PROGRAMS.md §3a.
 - Every TESTING.md scenario has a test whose name starts with its ID (`test/coverage.test.ts` enforces this). Never edit an expected value to make code pass: record the conflict in `ENGINE_QUESTIONS.md` and leave the test red.
 
 ## How the spec is organized
@@ -49,7 +49,7 @@ Markers: `[ASSUMPTION]` is a proposal to confirm, `[OPEN]` is a decision needed 
 - Decision table rows are checked top to bottom; first match wins. Row 1 pain beats everything.
 - A set is one Miss if below the bottom of the range *or* tapped Failed; a set that is both is still one miss.
 - On a first exposure (after any weight increase, swap, or calibration) the Miss threshold is B − 2 for that session only.
-- All weight changes move along the gym's ladder ("highest step ≤ 0.90 × W", "+1 step"). Never compute an off-ladder weight. Ladder rounding can make cuts larger than the nominal percentage; that is expected.
+- All weight changes move along the gym's ladder ("highest step ≤ 0.90 × W", "+1 step"). Never compute an off-ladder weight, and never assume a fixed increment: each exercise has its own ladder from the user's gym. A 0 g step means bodyweight only (bodyweight exercises use added load). Ladder rounding can make cuts larger than the nominal percentage; that is expected.
 - The `JUMP` (>10% increase) and first-exposure markers are data flags, not reason codes, and never block an increase.
 - Gap adjustment is applied when prescribing the first session after a break, based on days since the last session of any kind; >28 days means recalibrate.
 - Stall counter resets on any weight change and on any break >14 days. Stall compares current total reps with the first of the last three exposures (interpretation still [OPEN]).
