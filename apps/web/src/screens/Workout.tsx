@@ -1,6 +1,7 @@
 // The workout in progress: the list of exercises with their status, and the finish button.
 
 import { formatKg, type ExerciseRecord, type SessionRecord } from "@liftly/workout";
+import { ProgressDots } from "../dots";
 import { exerciseName } from "../gym";
 import { Button, Note, Screen } from "../ui";
 import { REP_RANGES } from "@liftly/engine";
@@ -53,6 +54,10 @@ export function Workout({
         )
       }
     >
+      <div className="-mt-2 flex items-center justify-between">
+        <span className="eyebrow">{session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} of {session.exercises.length} done</span>
+        <ProgressDots done={session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} total={session.exercises.length} />
+      </div>
       <ol className="flex flex-col gap-3" aria-label="Exercises" data-session-list>
         {session.exercises.map((er, i) => (
           <li key={er.slotOrder}>
@@ -61,9 +66,10 @@ export function Workout({
               onClick={() => onOpen(i)}
               data-exercise-row
               data-status={er.status}
-              className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left ${i === nextIndex ? "border-accent bg-accent-soft" : "border-line bg-surface"}`}
+              className={`card flex min-h-16 w-full items-center justify-between gap-3 p-4 text-left ${i === nextIndex ? "border-accent! bg-accent-soft!" : ""}`}
             >
               <span>
+                <span className="eyebrow block">{String(i + 1).padStart(2, "0")}</span>
                 <span className="block text-base font-medium">{exerciseName(er.exerciseId)}</span>
                 <span className="text-sm text-muted">{STATUS_TEXT[er.status]}</span>
               </span>

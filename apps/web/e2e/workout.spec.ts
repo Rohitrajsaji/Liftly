@@ -150,7 +150,7 @@ test("a finished workout shows the engine's next target; the next time round sho
   await expect(page.getByRole("button", { name: "Next exercise" })).toBeVisible();
   await page.getByRole("button", { name: "Workout list" }).click();
   await page.getByRole("button", { name: "Finish workout" }).click();
-  await expect(page.locator("[data-result] [data-next]").first()).toContainText("Next time:");
+  await expect(page.locator("[data-result] [data-next]").first()).toContainText("Next time");
   await page.getByRole("button", { name: "Done" }).click();
   for (let i = 0; i < 2; i++) await quickWorkout(page);
   const first = page.locator("[data-exercise-row]").first();

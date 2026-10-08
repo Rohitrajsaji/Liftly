@@ -3,6 +3,7 @@
 import { exercise } from "@liftly/catalog";
 import { REP_RANGES } from "@liftly/engine";
 import { FIRST_EXPOSURE_LINE, FOLLOW_UP_QUESTION, formatKg, REASON_LINES, calibrationLine, swapLine, PAUSED_SLOT_TEXT, type FollowUp, type PlannedExercise, type SessionRecord } from "@liftly/workout";
+import { DotFace } from "../dots";
 import { exerciseName } from "../gym";
 import { Button, Note, Screen } from "../ui";
 
@@ -57,7 +58,7 @@ export function Home({
       }
     >
       {follow !== undefined && (
-        <section className="rounded-2xl border border-line bg-warn-soft p-4 text-warn-ink" data-follow-up aria-label="Pain check-in">
+        <section className="rounded-2xl border border-line bg-warn-soft p-4 text-warn-ink shadow-sm" data-follow-up aria-label="Pain check-in">
           <p className="text-base font-medium">{FOLLOW_UP_QUESTION}</p>
           <p className="mt-1 text-sm">{exerciseName(follow.exerciseId)}. It's a quick check so Liftly knows when it is safe to progress again.</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -70,18 +71,23 @@ export function Home({
           </div>
         </section>
       )}
-      <div>
-        <p className="text-lg font-medium" data-workout-name>
-          {workoutName}
-        </p>
-        <p className="text-base text-muted">{lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}</p>
+      <div className="card flex items-center gap-4 p-4">
+        <DotFace mood={active !== null ? "ready" : "happy"} className="shrink-0 text-ink" />
+        <div>
+          <p className="eyebrow">{active !== null ? "In progress" : "Up next"}</p>
+          <p className="text-xl font-medium" data-workout-name>
+            {workoutName}
+          </p>
+          <p className="text-sm text-muted">{lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}</p>
+        </div>
       </div>
       {missingGym && <Note>Liftly needs the weights your gym has before it can suggest anything. It takes about a minute, and you only do it once.</Note>}
       {planError !== null && !missingGym && <Note tone="warn">{planError}</Note>}
       {plan !== null && (
         <ol className="flex flex-col gap-3" aria-label="Today's exercises" data-plan>
           {plan.map((p) => (
-            <li key={p.slotOrder} className="rounded-2xl border border-line bg-surface p-4" data-exercise-row>
+            <li key={p.slotOrder} className="card p-4" data-exercise-row>
+              <p className="eyebrow mb-1">{String(p.slotOrder).padStart(2, "0")}</p>
               <PlannedRow p={p} />
             </li>
           ))}
@@ -113,7 +119,7 @@ function PlannedRow({ p }: { readonly p: PlannedExercise }) {
   if (p.paused) lines.push(PAUSED_SLOT_TEXT);
   if (p.isSwap && p.exerciseId !== null) lines.push(swapLine(exercise(p.slotExerciseId).name, exercise(p.exerciseId).name));
   if (rx !== null) {
-    if (rx.kind === "calibration") lines.push(rx.reasonCode === "RECAL" ? REASON_LINES.RECAL : calibrationLine(p.type));
+    if (rx.kind === "calibration") lines.push(rx.reasonCode === "RECAL" ? REASON_LINES.RECAL : `Finding your starting weight. ${calibrationLine(p.type)}`);
     else {
       if (rx.reasonCode !== null) lines.push(REASON_LINES[rx.reasonCode]);
       if (rx.firstExposure) lines.push(FIRST_EXPOSURE_LINE);
@@ -129,7 +135,6 @@ function PlannedRow({ p }: { readonly p: PlannedExercise }) {
           {targetText(p)}
         </span>
       </div>
-      {rx?.kind === "calibration" && <p className="text-sm text-muted">Finding your starting weight</p>}
       {lines.map((l) => (
         <p key={l} className="mt-1 text-sm text-muted">
           {l}

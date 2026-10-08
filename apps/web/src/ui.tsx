@@ -7,14 +7,15 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { readonly variant?
 export function Button({ variant = "primary", className = "", ...rest }: ButtonProps) {
   const look =
     variant === "primary"
-      ? "bg-accent text-accent-ink disabled:opacity-40"
+      ? "bg-accent text-accent-ink shadow-[0_8px_16px_-8px_rgb(194_65_12/0.7)] disabled:opacity-40"
       : "border border-line bg-surface text-ink disabled:opacity-40";
   return <button type="button" className={`min-h-14 w-full rounded-xl px-5 text-base font-medium ${look} ${className}`} {...rest} />;
 }
 
-export function Screen({ title, children, actions, flow = false }: { readonly title: string; readonly children: ReactNode; readonly actions?: ReactNode; /** Actions follow the content instead of sticking to the bottom (used where they would cover the main buttons). */ readonly flow?: boolean }) {
+export function Screen({ title, children, actions, eyebrow, flow = false }: { readonly title: string; readonly children: ReactNode; readonly actions?: ReactNode; /** Small mono label above the title, like "TODAY". */ readonly eyebrow?: string; /** Actions follow the content instead of sticking to the bottom (used where they would cover the main buttons). */ readonly flow?: boolean }) {
   return (
     <section className="flex flex-1 flex-col gap-5">
+      {eyebrow !== undefined && <p className="eyebrow -mb-3">{eyebrow}</p>}
       <h1 tabIndex={-1} className="text-2xl font-semibold leading-snug outline-none" data-screen-title>
         {title}
       </h1>
@@ -26,5 +27,5 @@ export function Screen({ title, children, actions, flow = false }: { readonly ti
 
 export function Note({ tone = "info", children }: { readonly tone?: "info" | "warn"; readonly children: ReactNode }) {
   const look = tone === "warn" ? "bg-warn-soft text-warn-ink" : "bg-accent-soft text-ink";
-  return <p className={`rounded-xl p-4 text-[15px] leading-relaxed ${look}`}>{children}</p>;
+  return <p className={`rounded-2xl p-4 text-[15px] leading-relaxed ${look}`}>{children}</p>;
 }

@@ -2,6 +2,7 @@
 
 import { LOCATION_LABEL, PAIN_LOCATIONS, PAIN_ON_SWAP_TEXT, PAIN_STOP_TEXT, SERIOUS_PAIN_TEXT, type PainInput, type PainLocation } from "@liftly/workout";
 import { useState } from "react";
+import { DotFace } from "../dots";
 import { Button, Note, Screen } from "../ui";
 
 export function PainReport({ exerciseName, onCancel, onSubmit }: { readonly exerciseName: string; readonly onCancel: () => void; readonly onSubmit: (input: Omit<PainInput, "id">) => void }) {
@@ -76,6 +77,7 @@ function YesNo({ legend, value, onChange, name, pill }: { readonly legend: strin
 export function PainResult({ onSwap, professionalHelp, onDone }: { readonly onSwap: boolean; readonly professionalHelp: boolean; readonly onDone: () => void }) {
   return (
     <Screen title="Exercise stopped" actions={<Button onClick={onDone}>Back to workout</Button>}>
+      <DotFace mood="calm" className="mx-auto text-ink" />
       <Note tone="warn">
         <span data-pain-stop>{onSwap ? PAIN_ON_SWAP_TEXT : PAIN_STOP_TEXT}</span>
       </Note>
