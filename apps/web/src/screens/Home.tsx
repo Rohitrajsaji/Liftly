@@ -2,8 +2,7 @@
 
 import { exercise } from "@liftly/catalog";
 import { REP_RANGES } from "@liftly/engine";
-import { FIRST_EXPOSURE_LINE, FOLLOW_UP_QUESTION, formatKg, REASON_LINES, calibrationLine, swapLine, PAUSED_SLOT_TEXT, type FollowUp, type PlannedExercise, type SessionRecord } from "@liftly/workout";
-import { DotFace } from "../dots";
+import { FIRST_EXPOSURE_LINE, FOLLOW_UP_QUESTION, formatKg, REASON_LINES, swapLine, PAUSED_SLOT_TEXT, type FollowUp, type PlannedExercise, type SessionRecord } from "@liftly/workout";
 import { exerciseName } from "../gym";
 import { Button, Note, Screen } from "../ui";
 
@@ -71,23 +70,23 @@ export function Home({
           </div>
         </section>
       )}
-      <div className="card flex items-center gap-4 p-4">
-        <DotFace mood={active !== null ? "ready" : "happy"} className="shrink-0 text-ink" />
-        <div>
-          <p className="eyebrow">{active !== null ? "In progress" : "Up next"}</p>
-          <p className="text-xl font-medium" data-workout-name>
-            {workoutName}
-          </p>
-          <p className="text-sm text-muted">{lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}</p>
-        </div>
+      <div>
+        <p className="text-2xl font-semibold" data-workout-name>
+          {workoutName}
+        </p>
+        <p className="text-base text-muted">{lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}</p>
       </div>
       {missingGym && <Note>Liftly needs the weights your gym has before it can suggest anything. It takes about a minute, and you only do it once.</Note>}
+      {plan !== null && plan.length > 0 && plan.every((p) => p.prescription?.kind === "calibration" && p.prescription.reasonCode === null) && (
+        <Note>
+          <span data-calibration-note>Finding your starting weights today. Start light and go up one step at a time until the first reps feel Good.</span>
+        </Note>
+      )}
       {planError !== null && !missingGym && <Note tone="warn">{planError}</Note>}
       {plan !== null && (
-        <ol className="flex flex-col gap-3" aria-label="Today's exercises" data-plan>
+        <ol className="card divide-y divide-line" aria-label="Today's exercises" data-plan>
           {plan.map((p) => (
-            <li key={p.slotOrder} className="card p-4" data-exercise-row>
-              <p className="eyebrow mb-1">{String(p.slotOrder).padStart(2, "0")}</p>
+            <li key={p.slotOrder} className="p-4" data-exercise-row>
               <PlannedRow p={p} />
             </li>
           ))}
@@ -119,7 +118,7 @@ function PlannedRow({ p }: { readonly p: PlannedExercise }) {
   if (p.paused) lines.push(PAUSED_SLOT_TEXT);
   if (p.isSwap && p.exerciseId !== null) lines.push(swapLine(exercise(p.slotExerciseId).name, exercise(p.exerciseId).name));
   if (rx !== null) {
-    if (rx.kind === "calibration") lines.push(rx.reasonCode === "RECAL" ? REASON_LINES.RECAL : `Finding your starting weight. ${calibrationLine(p.type)}`);
+    if (rx.kind === "calibration") if (rx.reasonCode === "RECAL") lines.push(REASON_LINES.RECAL);
     else {
       if (rx.reasonCode !== null) lines.push(REASON_LINES[rx.reasonCode]);
       if (rx.firstExposure) lines.push(FIRST_EXPOSURE_LINE);

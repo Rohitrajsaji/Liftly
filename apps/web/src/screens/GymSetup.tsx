@@ -64,7 +64,6 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
             <li key={k} className="card p-4" data-equipment={k}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="eyebrow">{String(kinds.indexOf(k) + 1).padStart(2, "0")}</p>
                   <h2 className="text-lg font-semibold">{EQUIPMENT_LABEL[k]}</h2>
                   <p className="text-sm text-muted">{EQUIPMENT_HELP[k]}</p>
                 </div>

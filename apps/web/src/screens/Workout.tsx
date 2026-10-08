@@ -55,10 +55,10 @@ export function Workout({
       }
     >
       <div className="-mt-2 flex items-center justify-between">
-        <span className="eyebrow">{session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} of {session.exercises.length} done</span>
+        <span className="text-base text-muted">{session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} of {session.exercises.length} done</span>
         <ProgressDots done={session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} total={session.exercises.length} />
       </div>
-      <ol className="flex flex-col gap-3" aria-label="Exercises" data-session-list>
+      <ol className="card divide-y divide-line overflow-hidden" aria-label="Exercises" data-session-list>
         {session.exercises.map((er, i) => (
           <li key={er.slotOrder}>
             <button
@@ -66,10 +66,9 @@ export function Workout({
               onClick={() => onOpen(i)}
               data-exercise-row
               data-status={er.status}
-              className={`card flex min-h-16 w-full items-center justify-between gap-3 p-4 text-left ${i === nextIndex ? "border-accent! bg-accent-soft!" : ""}`}
+              className={`flex min-h-16 w-full items-center justify-between gap-3 border-l-4 p-4 text-left ${i === nextIndex ? "border-accent bg-accent-soft" : "border-transparent"}`}
             >
               <span>
-                <span className="eyebrow block">{String(i + 1).padStart(2, "0")}</span>
                 <span className="block text-base font-medium">{exerciseName(er.exerciseId)}</span>
                 <span className="text-sm text-muted">{STATUS_TEXT[er.status]}</span>
               </span>

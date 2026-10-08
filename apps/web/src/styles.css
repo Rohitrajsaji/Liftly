@@ -25,9 +25,6 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--color-bg);
-  /* A warm glow at the top, fading to the plain background. Light enough that dark text keeps its contrast. */
-  background-image: radial-gradient(120% 40% at 50% 0%, #ffe6cf 0%, var(--color-bg) 70%);
-  background-repeat: no-repeat;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
 }
 
@@ -36,24 +33,20 @@ body {
   outline-offset: 2px;
 }
 
-/* Small mono labels with an index, like "01  WEIGHT": the dashboard look of the reference. */
+/* Small section labels: plain sentence case, quiet. */
 .eyebrow {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--color-muted);
 }
 
-/* Raised cards with a soft warm shadow. */
+/* Flat surfaces with a hairline border; no shadows. */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-line);
-  border-radius: 1.25rem;
-  box-shadow: 0 1px 0 #fff inset, 0 6px 18px -8px rgb(120 53 15 / 0.22);
+  border-radius: 1rem;
 }
 .card-accent {
   background: var(--color-accent-soft);
-  border: 1px solid #fdba74;
-  border-radius: 1.25rem;
+  border-radius: 0.75rem;
 }

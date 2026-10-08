@@ -24,7 +24,7 @@ import {
   type SessionRecord,
 } from "@liftly/workout";
 import { useEffect, useState } from "react";
-import { DotFace, DotRing, DotText, EffortDots } from "../dots";
+import { Bar } from "../dots";
 import { exerciseName } from "../gym";
 import { Button, Note, Screen } from "../ui";
 import { previousText } from "./Home";
@@ -119,25 +119,24 @@ export function Exercise({
         </>
       }
     >
-      <p className="eyebrow -mt-3" data-set-heading>
+      <p className="-mt-3 text-base text-muted" data-set-heading>
         {heading}
       </p>
-      {(step.kind === "complete" || step.kind === "stopped") && <DotFace mood={step.kind === "complete" ? "happy" : "calm"} className="mx-auto text-ink" />}
       {swapped && <Note>{swapLine(exerciseName(er.slotExerciseId), title)}</Note>}
 
       {(step.kind === "ramp" || step.kind === "working") && (
         <section className="card p-4" aria-label="Target">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="eyebrow">01 · Weight</p>
-              <p className="mt-2 flex items-end gap-2" data-weight>
-                <DotText text={formatKg(step.weightG)} cell={6} />
-                <span className="pb-0.5 text-base text-muted">kg</span>
+              <p className="eyebrow">Weight</p>
+              <p className="flex items-baseline gap-1.5" data-weight>
+                <span className="text-5xl font-semibold tabular-nums tracking-tight">{formatKg(step.weightG)}</span>
+                <span className="text-lg text-muted">kg</span>
               </p>
             </div>
             <div className="text-right">
-              <p className="eyebrow">02 · Target</p>
-              <p className="mt-2 text-xl font-medium tabular-nums" data-target-reps>
+              <p className="eyebrow">Target</p>
+              <p className="text-xl font-medium tabular-nums" data-target-reps>
                 {range.bottom}–{range.top} reps
               </p>
             </div>
@@ -179,14 +178,17 @@ export function Exercise({
       )}
 
       {restOn && (
-        <section role="timer" aria-label="Rest timer" data-rest className={`card p-4 ${elapsed >= rest.minS ? "border-accent!" : ""}`}>
-          <p className="eyebrow">03 · Rest</p>
-          <DotRing progress={elapsed / rest.maxS} mark={rest.minS / rest.maxS} ready={elapsed >= rest.minS} size={168}>
-            <span className="block" data-rest-clock>
-              <DotText text={formatClock(elapsed)} cell={4} />
-            </span>
-          </DotRing>
-          <p className="mt-2 text-center text-sm text-muted" data-rest-hint>
+        <section role="timer" aria-label="Rest timer" data-rest className="card p-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="eyebrow">Rest</p>
+            <p className="text-3xl font-semibold tabular-nums" data-rest-clock>
+              {formatClock(elapsed)}
+            </p>
+          </div>
+          <div className="mt-3">
+            <Bar value={elapsed / rest.maxS} mark={rest.minS / rest.maxS} accent={elapsed >= rest.minS} />
+          </div>
+          <p className="mt-2 text-sm text-muted" data-rest-hint>
             {elapsed >= rest.minS ? "Ready when you are." : `Rest ${restLabel(rest)} before the next set.`}
           </p>
         </section>
@@ -195,13 +197,13 @@ export function Exercise({
       {(step.kind === "ramp" || step.kind === "working") && (
         <>
           <section aria-label="Reps">
-            <p className="eyebrow mb-2">04 · Reps</p>
+            <p className="eyebrow mb-2">Reps</p>
             <div className="card flex items-center justify-between gap-4 p-3">
               <button type="button" aria-label="One rep less" disabled={reps <= 0} onClick={() => setReps(reps - 1)} className="size-16 rounded-xl bg-bg text-2xl font-medium disabled:opacity-40">
                 −
               </button>
-              <output aria-live="polite" className="text-accent" data-reps>
-                <DotText text={String(reps)} cell={6} />
+              <output aria-live="polite" className="text-5xl font-semibold tabular-nums" data-reps>
+                {reps}
               </output>
               <button type="button" aria-label="One rep more" disabled={reps >= 100} onClick={() => setReps(reps + 1)} className="size-16 rounded-xl bg-bg text-2xl font-medium disabled:opacity-40">
                 +
@@ -209,14 +211,11 @@ export function Exercise({
             </div>
           </section>
           <section aria-label="How did it feel">
-            <p className="eyebrow mb-2">05 · How did it feel? Tap to log the set</p>
+            <p className="eyebrow mb-2">How did it feel? Tap to log the set.</p>
             <div className="grid grid-cols-2 gap-2">
               {EFFORTS.map((e) => (
                 <button key={e} type="button" data-effort={e} onClick={() => log(e)} className="card min-h-20 px-3 py-2 text-left active:bg-accent-soft">
-                  <span className="flex items-center justify-between">
-                    <span className="block text-lg font-medium">{EFFORT_LABEL[e]}</span>
-                    <EffortDots level={(EFFORTS.indexOf(e) + 1) as 1 | 2 | 3 | 4} />
-                  </span>
+                  <span className="block text-lg font-medium">{EFFORT_LABEL[e]}</span>
                   <span className="block text-sm text-muted">{EFFORT_HELP[e]}</span>
                 </button>
               ))}

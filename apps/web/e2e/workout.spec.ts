@@ -58,8 +58,7 @@ test("first run: gym weights are needed, then today's workout shows calibration 
   await expect(page.locator("[data-workout-name]")).toHaveText("Workout A");
   const rows = page.locator("[data-exercise-row]");
   await expect(rows).toHaveCount(5);
-  await expect(rows.first()).toContainText("Finding your starting weight");
-  await expect(rows.first()).toContainText("Start light");
+  await expect(page.locator("[data-calibration-note]")).toContainText("Start light");
   await page.reload();
   await expect(page.getByRole("button", { name: "Start workout" })).toBeVisible();
 });
@@ -155,7 +154,7 @@ test("a finished workout shows the engine's next target; the next time round sho
   for (let i = 0; i < 2; i++) await quickWorkout(page);
   const first = page.locator("[data-exercise-row]").first();
   await expect(first).toContainText("Last time: 10 kg ×");
-  await expect(first).not.toContainText("Finding your starting weight");
+  await expect(page.locator("[data-calibration-note]")).toHaveCount(0);
   await page.getByRole("button", { name: "Start workout" }).click();
   await page.locator("[data-exercise-row]").first().click();
   await expect(page.locator("[data-previous]")).toContainText("Last time");

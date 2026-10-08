@@ -7,7 +7,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { readonly variant?
 export function Button({ variant = "primary", className = "", ...rest }: ButtonProps) {
   const look =
     variant === "primary"
-      ? "bg-accent text-accent-ink shadow-[0_8px_16px_-8px_rgb(194_65_12/0.7)] disabled:opacity-40"
+      ? "bg-accent text-accent-ink disabled:opacity-40"
       : "border border-line bg-surface text-ink disabled:opacity-40";
   return <button type="button" className={`min-h-14 w-full rounded-xl px-5 text-base font-medium ${look} ${className}`} {...rest} />;
 }
