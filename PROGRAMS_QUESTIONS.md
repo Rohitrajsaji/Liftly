@@ -18,9 +18,9 @@ Kept. Its ladder is added load: 0 kg is bodyweight only, then the loads the user
 
 Removed as a V1 swap and replaced by Machine Pulldown (compound, machine, 8–12) in both programs.
 
-## PQ5. One-Arm Dumbbell Row class and equipment (open, raised 2026-10-08)
+## PQ5. One-Arm Dumbbell Row class and equipment (resolved 2026-10-08, DECISIONS P5)
 
-The new swap for Seated Cable Row has no stated class or equipment. The catalog uses compound, dumbbell (8–12 reps), inferred from its name and from the row it replaces, and PROGRAMS.md §3a marks it [ASSUMPTION]. **Needed:** confirm.
+Confirmed by Rohit: compound, dumbbell, 8–12 reps.
 
 ## Note: swap of a swap
 

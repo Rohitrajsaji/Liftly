@@ -1,17 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { back, changeProgram, clampMonths, furthestAllowed, goTo, isBeyondBeginnerRange, NEW_PROFILE, next, normalize, type Profile } from "../src/onboarding";
 
-const done: Profile = { step: "preview", monthsTraining: 4, programId: "3-day", goalConfirmed: true };
+const done: Profile = { step: "preview", monthsTraining: 4, programId: "3-day" };
 
 describe("onboarding steps (PRD F1)", () => {
-  it("runs welcome → experience → program → goal → preview", () => {
+  it("runs welcome → experience → program → preview (no goal step)", () => {
     let p = next(NEW_PROFILE);
     expect(p.step).toBe("experience");
     p = next({ ...p, monthsTraining: 0 });
     expect(p.step).toBe("program");
     p = next({ ...p, programId: "4-day" });
-    expect(p.step).toBe("goal");
-    p = next({ ...p, goalConfirmed: true });
     expect(p.step).toBe("preview");
   });
 
@@ -19,7 +17,7 @@ describe("onboarding steps (PRD F1)", () => {
     const p = next({ ...NEW_PROFILE, step: "experience" });
     expect(p.step).toBe("experience");
     expect(goTo(NEW_PROFILE, "preview").step).toBe("experience");
-    expect(furthestAllowed({ ...NEW_PROFILE, monthsTraining: 2, programId: "3-day" })).toBe("goal");
+    expect(furthestAllowed({ ...NEW_PROFILE, monthsTraining: 2, programId: "3-day" })).toBe("preview");
   });
 
   it("0 months is a valid answer", () => {
@@ -28,7 +26,7 @@ describe("onboarding steps (PRD F1)", () => {
 
   it("back never goes before welcome and keeps answers", () => {
     expect(back(NEW_PROFILE).step).toBe("welcome");
-    expect(back(done)).toEqual({ ...done, step: "goal" });
+    expect(back(done)).toEqual({ ...done, step: "program" });
   });
 
   it("changing program from the preview reopens the program step and keeps the other answers", () => {
@@ -45,7 +43,9 @@ describe("onboarding steps (PRD F1)", () => {
 
   it("normalize repairs a damaged stored profile", () => {
     expect(normalize(undefined)).toEqual(NEW_PROFILE);
-    expect(normalize({ step: "preview", monthsTraining: 3, programId: "3-day", goalConfirmed: false }).step).toBe("goal");
+    expect(normalize({ step: "preview", monthsTraining: 3, programId: null }).step).toBe("program");
+    // A profile saved by M4, when "goal" was a step, goes straight to the preview.
+    expect(normalize({ step: "goal" as never, monthsTraining: 3, programId: "3-day", goalConfirmed: true } as never)).toEqual({ step: "preview", monthsTraining: 3, programId: "3-day" });
     expect(normalize({ ...done, programId: "5-day" as never }).step).toBe("program");
     expect(normalize({ ...done, step: "nope" as never }).step).toBe("welcome");
     expect(normalize(done)).toEqual(done);

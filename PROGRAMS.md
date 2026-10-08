@@ -138,7 +138,7 @@ Exercises used only as approved swaps. Every load change still uses the exercise
 | Machine Pulldown | Compound | Machine | 8–12 |
 | One-Arm Dumbbell Row | Compound | Dumbbell | 8–12 |
 
-[ASSUMPTION: One-Arm Dumbbell Row metadata inferred from its name and the other rows; confirm.] Swap-only exercises have no swap of their own (README open item 12).
+One-Arm Dumbbell Row confirmed as compound, dumbbell, 8–12 (Rohit, 2026-10-08, DECISIONS P5). Swap-only exercises have no swap of their own (README open item 12).
 
 ---
 

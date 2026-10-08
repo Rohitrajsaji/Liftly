@@ -1,21 +1,21 @@
-// Onboarding (PRD F1): training experience, program choice, goal confirmation, then the plan preview (F2).
+// Onboarding (PRD F1): training experience and program choice, then the plan preview (F2). The goal is
+// always "build muscle" (the only V1 goal), so it is shown as information, not asked (DECISIONS U1).
 // Pure state transitions; the screens and the local database only call these.
 
 import type { ProgramId } from "@liftly/catalog";
 
-export type Step = "welcome" | "experience" | "program" | "goal" | "preview";
+export type Step = "welcome" | "experience" | "program" | "preview";
 
-export const STEPS: readonly Step[] = ["welcome", "experience", "program", "goal", "preview"];
+export const STEPS: readonly Step[] = ["welcome", "experience", "program", "preview"];
 
 export interface Profile {
   readonly step: Step;
   /** DATA_MODEL User.months_training. */
   readonly monthsTraining: number | null;
   readonly programId: ProgramId | null;
-  readonly goalConfirmed: boolean;
 }
 
-export const NEW_PROFILE: Profile = { step: "welcome", monthsTraining: null, programId: null, goalConfirmed: false };
+export const NEW_PROFILE: Profile = { step: "welcome", monthsTraining: null, programId: null };
 
 /** The stepper's range. Liftly is built for 0 to 12 months (MVP_SCOPE); higher values are kept as entered. */
 export const MONTHS_MIN = 0;
@@ -39,8 +39,6 @@ export function isComplete(p: Profile, step: Step): boolean {
       return p.monthsTraining !== null;
     case "program":
       return p.programId !== null;
-    case "goal":
-      return p.goalConfirmed;
     case "preview":
       return true;
   }
@@ -78,7 +76,9 @@ export function changeProgram(p: Profile): Profile {
 export function normalize(p: Partial<Profile> | undefined): Profile {
   const months = typeof p?.monthsTraining === "number" ? clampMonths(p.monthsTraining) : null;
   const programId = p?.programId === "3-day" || p?.programId === "4-day" ? p.programId : null;
-  const base: Profile = { step: "welcome", monthsTraining: months, programId, goalConfirmed: p?.goalConfirmed === true };
-  const step = p?.step !== undefined && STEPS.includes(p.step) ? p.step : "welcome";
+  const base: Profile = { step: "welcome", monthsTraining: months, programId };
+  // "goal" was a step in M4; profiles saved then continue to the preview.
+  const stored: string | undefined = p?.step;
+  const step: Step = stored === "goal" ? "preview" : STEPS.find((s) => s === stored) ?? "welcome";
   return goTo(base, step);
 }

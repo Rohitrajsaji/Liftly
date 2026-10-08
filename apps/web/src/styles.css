@@ -1,32 +1,18 @@
 @import "tailwindcss";
 
-/* Colour tokens. Contrast is kept high for bright gyms and dim ones (UX §10, §11). */
+/* Colour tokens: warm orange accent on light backgrounds with dark text (M4.1). Accent on white is 5.2:1,
+   ink on bg 16:1, muted on bg 7:1 (UX §10, §11). */
 @theme {
-  --color-bg: #f8fafc;
+  --color-bg: #fffaf5;
   --color-surface: #ffffff;
-  --color-ink: #0f172a;
-  --color-muted: #475569;
-  --color-line: #cbd5e1;
-  --color-accent: #3f6212;
+  --color-ink: #1c1917;
+  --color-muted: #57534e;
+  --color-line: #e7d5c4;
+  --color-accent: #c2410c;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #ecfccb;
+  --color-accent-soft: #ffedd5;
   --color-warn-soft: #fef3c7;
   --color-warn-ink: #78350f;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0f172a;
-    --color-surface: #1e293b;
-    --color-ink: #f8fafc;
-    --color-muted: #cbd5e1;
-    --color-line: #334155;
-    --color-accent: #a3e635;
-    --color-accent-ink: #0f172a;
-    --color-accent-soft: #1a2e05;
-    --color-warn-soft: #422006;
-    --color-warn-ink: #fde68a;
-  }
 }
 
 html {

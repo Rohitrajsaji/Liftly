@@ -20,7 +20,6 @@ test("first open offline after one online visit: onboarding and preview work", a
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("radio", { name: /^3 days a week/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Yes, build muscle" }).click();
   await expect(page.locator("[data-workout]")).toHaveCount(3);
   await expect(page.getByText("Leg Press").first()).toBeVisible();
 });
@@ -30,7 +29,6 @@ test("saved plan reopens offline, including on a deep link", async ({ page, cont
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("radio", { name: /^4 days a week/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Yes, build muscle" }).click();
   await context.setOffline(true);
   await page.goto("/some/deep/link");
   await expect(page.getByRole("heading", { name: "Your plan" })).toBeVisible();

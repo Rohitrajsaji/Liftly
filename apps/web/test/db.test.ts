@@ -8,7 +8,7 @@ describe("local profile storage", () => {
     const name = `t-${Math.random()}`;
     const db = new LiftlyDb(name);
     expect(await loadProfile(db)).toEqual(NEW_PROFILE);
-    const p: Profile = { step: "preview", monthsTraining: 7, programId: "4-day", goalConfirmed: true };
+    const p: Profile = { step: "preview", monthsTraining: 7, programId: "4-day" };
     await saveProfile(db, p, new Date("2026-10-08T00:00:00Z"));
     db.close();
     const again = new LiftlyDb(name);

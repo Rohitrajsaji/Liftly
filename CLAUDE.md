@@ -32,7 +32,8 @@ Node 22 and pnpm 10. From the repository root:
 ## Web app rules
 
 - `apps/web` shows only what `@liftly/catalog` and `@liftly/engine` give it. It never computes weights, reps or sets itself.
-- Nothing is uploaded before an account exists (DECISIONS C7); in M4 everything stays in IndexedDB on the device.
+- Nothing is uploaded before an account exists (DECISIONS C7); until M5 lands everything stays in IndexedDB on the device.
+- Theme: warm orange accent on light backgrounds with dark text, no dark mode (M4.1). Colours are tokens in `src/styles.css`; `test/theme.test.ts` enforces 4.5:1 contrast. Headings and card text are deliberately small and medium-weight; keep touch targets large instead.
 - Controls are at least 48 px tall and the layout must not scroll sideways at phone width (`e2e/onboarding.spec.ts` checks both).
 
 ## How the spec is organized

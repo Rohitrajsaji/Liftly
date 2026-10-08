@@ -20,22 +20,22 @@ export function Experience({ initial, onBack, onDone }: { readonly initial: numb
         </>
       }
     >
-      <p className="text-lg text-muted">Count the months of regular gym training. Zero is fine.</p>
-      <div className="flex items-center justify-between gap-4 rounded-2xl border-2 border-line bg-surface p-3">
-        <button type="button" aria-label="One month less" disabled={months <= MONTHS_MIN} onClick={() => set(months - 1)} className="size-16 rounded-xl bg-bg text-3xl font-bold disabled:opacity-40">
+      <p className="text-base text-muted">Count the months of regular gym training. Zero is fine.</p>
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-3">
+        <button type="button" aria-label="One month less" disabled={months <= MONTHS_MIN} onClick={() => set(months - 1)} className="size-16 rounded-xl bg-bg text-2xl font-medium disabled:opacity-40">
           −
         </button>
         <output aria-live="polite" className="text-center">
-          <span className="block text-5xl font-bold tabular-nums">{months}</span>
-          <span className="text-lg text-muted">{label}</span>
+          <span className="block text-4xl font-semibold tabular-nums">{months}</span>
+          <span className="text-base text-muted">{label}</span>
         </output>
-        <button type="button" aria-label="One month more" disabled={months >= MONTHS_MAX} onClick={() => set(months + 1)} className="size-16 rounded-xl bg-bg text-3xl font-bold disabled:opacity-40">
+        <button type="button" aria-label="One month more" disabled={months >= MONTHS_MAX} onClick={() => set(months + 1)} className="size-16 rounded-xl bg-bg text-2xl font-medium disabled:opacity-40">
           +
         </button>
       </div>
       <div className="grid grid-cols-4 gap-2" role="group" aria-label="Quick picks">
         {QUICK.map((n) => (
-          <button key={n} type="button" aria-pressed={months === n} onClick={() => set(n)} className={`min-h-14 rounded-xl border-2 text-lg font-semibold ${months === n ? "border-accent bg-accent-soft" : "border-line bg-surface"}`}>
+          <button key={n} type="button" aria-pressed={months === n} onClick={() => set(n)} className={`min-h-14 rounded-xl border text-base font-medium ${months === n ? "border-accent bg-accent-soft" : "border-line bg-surface"}`}>
             {n}
           </button>
         ))}

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LiftlyDb, loadProfile, saveProfile } from "./db";
 import { back, changeProgram, next, type Profile } from "./onboarding";
 import { Experience } from "./screens/Experience";
-import { Goal } from "./screens/Goal";
 import { Preview } from "./screens/Preview";
 import { ProgramChoice } from "./screens/ProgramChoice";
 import { Welcome } from "./screens/Welcome";
@@ -57,7 +56,6 @@ export function App() {
         {profile.step === "program" && (
           <ProgramChoice initial={profile.programId} onBack={() => update(back(profile))} onDone={(id) => update(next({ ...profile, programId: id }))} />
         )}
-        {profile.step === "goal" && <Goal onBack={() => update(back(profile))} onConfirm={() => update(next({ ...profile, goalConfirmed: true }))} />}
         {profile.step === "preview" && profile.programId !== null && <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} />}
       </main>
     </div>

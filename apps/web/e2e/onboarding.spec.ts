@@ -9,7 +9,6 @@ async function onboard(page: Page, months: number, program: ProgramId) {
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("radio", { name: new RegExp(`^${PROGRAMS[program].sessionsPerWeek} days a week`) }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Yes, build muscle" }).click();
   await expect(page.getByRole("heading", { name: "Your plan" })).toBeVisible();
 }
 
@@ -53,7 +52,6 @@ test("changing program keeps the other answers and updates the preview", async (
   await page.getByRole("button", { name: "Change program" }).click();
   await page.getByRole("radio", { name: /^4 days a week/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Yes, build muscle" }).click();
   expect(await shownPlan(page)).toEqual(expectedPlan("4-day"));
 });
 
@@ -89,7 +87,6 @@ test("tap targets are at least 48 px tall on every onboarding screen", async ({ 
   await page.getByRole("radio", { name: /^3 days a week/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await check();
-  await page.getByRole("button", { name: "Yes, build muscle" }).click();
   await check();
 });
 
@@ -97,4 +94,27 @@ test("no horizontal scroll at phone width", async ({ page }) => {
   await onboard(page, 3, "4-day");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test("the goal is shown as information, with no confirmation step", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("Your goal: build muscle.")).toBeVisible();
+  await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("radio", { name: /^3 days a week/ }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  // The next screen after the program is the plan itself.
+  await expect(page.getByRole("heading", { name: "Your plan" })).toBeVisible();
+  await expect(page.getByText("Goal: build muscle.")).toBeVisible();
+});
+
+test("backgrounds stay light with dark text, even when the phone is in dark mode", async ({ browser }) => {
+  const ctx = await browser.newContext({ colorScheme: "dark" });
+  const page = await ctx.newPage();
+  await page.goto("http://localhost:4173/");
+  const [bg, ink] = await page.evaluate(() => [getComputedStyle(document.body).backgroundColor, getComputedStyle(document.body).color]);
+  const lum = (c: string) => (c.match(/\d+/g) ?? []).slice(0, 3).map(Number).reduce((a, b) => a + b, 0) / 3;
+  expect(lum(bg)).toBeGreaterThan(220);
+  expect(lum(ink)).toBeLessThan(60);
+  await ctx.close();
 });
