@@ -60,3 +60,6 @@ These are not decisions. Each is a named constant or a single function in `packa
 | Sign-in prompt (M6) | Workouts are saved on the phone with no account. A non-blocking note appears after the first set and on the summary; signing in uploads everything | DECISIONS C7 |
 | Pain follow-up (M6) | One day after a pain report the Today screen asks whether it is still there; the answer is saved as an event | SAFETY 24-hour rule |
 | Look (M6) | Soft neumorphic UI after Rohit's references (2026-10-08): grey surfaces, raised and pressed shapes, Poppins, orange accent only for the main action, selection text and progress. Safety messages keep a tinted background so they stand out | Rohit |
+| Personal record (M7) | The heaviest weight lifted for at least the bottom of the exercise's rep range in a working set; ties go to more reps. A Failed attempt below that is not a record | PRD F14 does not define "record" |
+| Progress charts (M7) | Weight over time is the heaviest working-set weight per session (added load for bodyweight exercises); warm-up sets are left out. Workouts per week count Monday to Sunday over the last 8 weeks, partial workouts included | PRD F14 |
+| Progress and history source (M7) | Computed on the device from finished workouts, nothing stored separately, so they work offline and rebuild on a new phone | DATA_MODEL |

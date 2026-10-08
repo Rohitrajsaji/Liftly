@@ -9,7 +9,9 @@ import { Account } from "./screens/Account";
 import { Consent } from "./screens/Consent";
 import { Exercise } from "./screens/Exercise";
 import { GymSetup } from "./screens/GymSetup";
+import { History } from "./screens/History";
 import { Home, dueFollowUps } from "./screens/Home";
+import { Progress } from "./screens/Progress";
 import { PainReport, PainResult } from "./screens/Pain";
 import { Summary } from "./screens/Summary";
 import { Workout } from "./screens/Workout";
@@ -27,7 +29,7 @@ import { exerciseName as exerciseNameOf } from "./gym";
 
 type View = "onboarding" | "consent" | "email" | "code" | "account";
 /** Where the user is inside the app once onboarded. */
-type Screen = "home" | "gym" | "plan" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
+type Screen = "home" | "progress" | "history" | "gym" | "plan" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
 
 const db = new LiftlyDb();
 const backend: Backend | null = SUPABASE === null ? null : createSupabaseBackend(SUPABASE.url, SUPABASE.key);
@@ -180,6 +182,15 @@ export function App() {
           {accountButton}
         </span>
       </header>
+      {view === "onboarding" && onboarded && workout.ready && (where === "home" || where === "progress" || where === "history") && (
+        <nav aria-label="Sections" className="pressed mt-1 grid grid-cols-3 gap-1 rounded-full p-1">
+          {(["home", "progress", "history"] as const).map((t) => (
+            <button key={t} type="button" aria-current={where === t ? "page" : undefined} onClick={() => setScreen(t)} className={`min-h-12 rounded-full text-base ${where === t ? "raised font-medium text-accent" : "text-muted"}`}>
+              {t === "home" ? "Today" : t === "progress" ? "Progress" : "History"}
+            </button>
+          ))}
+        </nav>
+      )}
       <main ref={main} className="flex flex-1 flex-col pb-4 pt-4">
         {view === "consent" && (
           <Consent
@@ -262,6 +273,8 @@ export function App() {
             onAnswer={(id, still) => void workout.answerFollowUp(id, still)}
           />
         )}
+        {view === "onboarding" && onboarded && workout.ready && where === "progress" && <Progress sessions={workout.data.sessions} />}
+        {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "history" && <History sessions={workout.data.sessions} programId={workout.ctx.programId} />}
         {view === "onboarding" && onboarded && workout.ctx !== null && where === "gym" && (
           <GymSetup
             programId={workout.ctx.programId}

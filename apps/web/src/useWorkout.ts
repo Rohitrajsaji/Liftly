@@ -47,7 +47,7 @@ export interface WorkoutController {
   discard(): Promise<void>;
 }
 
-const EMPTY: WorkoutData = { state: EMPTY_STATE, ladders: {}, active: null, custom: [] };
+const EMPTY: WorkoutData = { state: EMPTY_STATE, ladders: {}, active: null, custom: [], sessions: [] };
 
 export function useWorkout(db: LiftlyDb, profile: Profile, session: Session | null, onSaved: () => void, reloadKey: number): WorkoutController {
   const [data, setData] = useState<WorkoutData>(EMPTY);

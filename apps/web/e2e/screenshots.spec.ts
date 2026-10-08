@@ -62,3 +62,35 @@ async function fill(page: Page, kind: string) {
   await page.getByLabel("Step (kg)").fill(step);
   await page.getByRole("button", { name: "Add range" }).click();
 }
+
+test("progress screenshots", async ({ page }) => {
+  const shot = (name: string) => page.screenshot({ path: `${dir}/${name}.png`, fullPage: false });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("radio", { name: /^3 days a week/ }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue to your first workout" }).click();
+  await page.getByRole("button", { name: "Set your gym's weights" }).click();
+  for (const k of ["machine", "cable", "dumbbell"]) {
+    await page.locator(`[data-equipment=${k}]`).getByRole("button", { name: "Add" }).click();
+    await fill(page, k);
+    await page.getByRole("button", { name: "Save weights" }).click();
+  }
+  await page.getByRole("button", { name: "Done" }).click();
+  for (let i = 0; i < 4; i++) {
+    await page.getByRole("button", { name: "Start workout" }).click();
+    await page.locator("[data-exercise-row]").first().click();
+    await page.locator("[data-effort=good]").click();
+    await page.locator("[data-effort=good]").click();
+    await page.locator("[data-effort=good]").click();
+    await page.getByRole("button", { name: "Workout list" }).click();
+    await page.getByRole("button", { name: "Finish workout" }).click();
+    await page.getByRole("button", { name: "Done" }).click();
+  }
+  await page.getByRole("button", { name: "Progress", exact: true }).click();
+  await shot("13-progress");
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page.locator("[data-history-item] summary").first().click();
+  await shot("14-history");
+});

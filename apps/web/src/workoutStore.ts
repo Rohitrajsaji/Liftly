@@ -1,7 +1,7 @@
 // Saving and loading the training plan on the device, and merging it with the account's copy.
 // The plan itself is never stored: it is rebuilt from the facts (finished workouts and pain answers) each time.
 
-import { buildState, type PlanEvent, type PlanState, type SessionRecord } from "@liftly/workout";
+import { buildState, sessionsOf, type PlanEvent, type PlanState, type SessionRecord } from "@liftly/workout";
 import type { Backend, EventRow, LadderRow, Session } from "./backend";
 import type { LadderRecord, LiftlyDb } from "./db";
 import { enqueueEvent, enqueueLadder } from "./sync";
@@ -10,6 +10,8 @@ export interface WorkoutData {
   readonly state: PlanState;
   readonly ladders: Readonly<Record<string, readonly number[]>>;
   readonly active: SessionRecord | null;
+  /** Finished workouts, oldest first (progress and history). */
+  readonly sessions: readonly SessionRecord[];
   /** Exercises whose gym weights were edited on their own. */
   readonly custom: readonly string[];
 }
@@ -20,6 +22,7 @@ export async function loadWorkoutData(db: LiftlyDb): Promise<WorkoutData> {
     state: buildState(events.map((e) => e.event)),
     ladders: Object.fromEntries(ladders.map((l) => [l.exerciseId, l.loadsG])),
     active: active?.session ?? null,
+    sessions: sessionsOf(events.map((e) => e.event)),
     custom: ladders.filter((l) => l.custom).map((l) => l.exerciseId),
   };
 }

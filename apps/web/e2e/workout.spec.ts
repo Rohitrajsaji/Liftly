@@ -250,3 +250,40 @@ test.describe("with an account", () => {
     await expect.poll(() => fake.ladders.size).toBeGreaterThan(5);
   });
 });
+
+test.describe("progress and history", () => {
+  test("empty before the first workout; then history, records, chart and weekly count appear (works offline)", async ({ page, context }) => {
+    await onboard(page);
+    await setupGym(page);
+    await page.getByRole("button", { name: "Progress", exact: true }).click();
+    await expect(page.locator("[data-empty]")).toBeVisible();
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await expect(page.locator("[data-empty]")).toBeVisible();
+    await page.getByRole("button", { name: "Today", exact: true }).click();
+
+    // One full exercise: calibration (Good first) then two more sets at 8 reps, the bottom of the range.
+    await page.getByRole("button", { name: "Start workout" }).click();
+    await page.locator("[data-exercise-row]").first().click();
+    await tap(page, "good");
+    await tap(page, "good");
+    await tap(page, "good");
+    await page.getByRole("button", { name: "Workout list" }).click();
+    await page.getByRole("button", { name: "Finish workout" }).click();
+    await page.getByRole("button", { name: "Done" }).click();
+
+    await context.setOffline(true);
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await expect(page.locator("[data-history-item]")).toHaveCount(1);
+    await page.locator("[data-history-item] summary").click();
+    await expect(page.locator("[data-history-item]")).toContainText("Leg Press");
+    await expect(page.locator("[data-history-item]")).toContainText("10 kg × 8");
+
+    await page.getByRole("button", { name: "Progress", exact: true }).click();
+    await expect(page.locator("[data-record]")).toHaveCount(1);
+    await expect(page.locator("[data-record]")).toContainText("10 kg × 8");
+    await expect(page.locator("[data-chart]")).toBeVisible();
+    await expect(page.getByText("One workout so far")).toBeVisible();
+    await expect(page.locator("[data-weeks] li")).toHaveCount(8);
+    await context.setOffline(false);
+  });
+});
