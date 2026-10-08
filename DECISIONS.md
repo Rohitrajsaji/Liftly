@@ -45,3 +45,8 @@ These are not decisions. Each is a named constant or a single function in `packa
 | Serious pain and the swap | The swap takes the removed exercise's slot, starting with a ramp | Architecture plan, gaps |
 | Stall counter on first exposure | A first exposure at a new weight starts the window at 1 | ENGINE §7 (counter resets on weight change) |
 | More than 12 months of training at onboarding (web app, M4) | Allowed. The answer is stored as entered and a one-line note says Liftly is built for about the first 12 months | MVP_SCOPE users 0–12 months; nothing says what to do above it |
+| Sign-in method (M5) | Email one-time code (6 digits, 10 minutes), no passwords. Google sign-in is left for later because it needs a Google Cloud OAuth client; the email code is enough for the first flow and costs nothing | Rohit, 2026-10-08: keep the first auth flow simple and low-cost |
+| Sync conflicts (M5) | Append-only rows (sets, decisions, consents) carry client-made ids, so a retried upload never duplicates. The one editable row, the profile, keeps the newest `updated_at`; a stale write from an offline phone is ignored | TESTING O-03, PRD FR-15 |
+| Account deletion scope (M5) | Deleting the account deletes the user and every row linked to it, including consent records, in one step | SAFETY §6 open item (retention period and deletion scope still open) |
+| Onboarding answers at sign-in (M5) | The answers kept on the device attach to the account at sign-in. If the account already has a profile and the device has none, the account's profile is used. If both exist, the newer one wins | DECISIONS C7 |
+| Consent text (M5) | `draft-1` in `apps/web/src/consent.ts`, shown before an account is created and stored with the date. Needs Rohit's review | SAFETY §6 |

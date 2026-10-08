@@ -1,0 +1,122 @@
+// Runs the real migration (supabase/migrations/0001_accounts.sql) in an in-process Postgres (PGlite) with a
+// stand-in for Supabase's auth schema, and checks the privacy rules: a user can only see and change their own rows.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { PGlite } from "@electric-sql/pglite";
+import { beforeAll, describe, expect, it } from "vitest";
+
+const MIGRATION = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "0001_accounts.sql"), "utf8");
+
+const ALICE = "11111111-1111-1111-1111-111111111111";
+const BOB = "22222222-2222-2222-2222-222222222222";
+
+let db: PGlite;
+
+/** Runs sql as a signed-in user (role authenticated, auth.uid() = id), or as anon when id is null. */
+async function as<T = Record<string, unknown>>(id: string | null, sql: string, params: unknown[] = []): Promise<T[]> {
+  await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${id ?? ""}', false); set role ${id === null ? "anon" : "authenticated"};`);
+  try {
+    return (await db.query<T>(sql, params)).rows;
+  } finally {
+    await db.exec("reset role");
+  }
+}
+
+const profileSql = "insert into public.profiles (user_id, months_training, program, start_date, updated_at) values ($1, 3, '3-day', '2026-10-08', $2)";
+
+beforeAll(async () => {
+  db = new PGlite();
+  // Minimal stand-ins for what Supabase provides.
+  await db.exec(`
+    create role anon nologin; create role authenticated nologin;
+    create schema auth;
+    create table auth.users (id uuid primary key);
+    create function auth.uid() returns uuid language sql stable as
+      $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    grant usage on schema public, auth to anon, authenticated;
+    grant execute on function auth.uid() to anon, authenticated;
+    insert into auth.users values ('${ALICE}'), ('${BOB}');
+  `);
+  await db.exec(MIGRATION);
+});
+
+describe("row-level security (M5 exit: a user can't read another user's rows)", () => {
+  it("a user can create and read their own profile", async () => {
+    await as(ALICE, profileSql, [ALICE, "2026-10-08T10:00:00Z"]);
+    expect(await as(ALICE, "select user_id, program from public.profiles")).toEqual([{ user_id: ALICE, program: "3-day" }]);
+  });
+
+  it("another user sees nothing of it", async () => {
+    expect(await as(BOB, "select * from public.profiles")).toEqual([]);
+  });
+
+  it("another user cannot create a row in someone else's name", async () => {
+    await expect(as(BOB, profileSql, [ALICE, "2026-10-08T10:00:00Z"])).rejects.toThrow(/row-level security|duplicate key/);
+    await expect(as(BOB, "insert into public.consents (id, user_id, consent_version, accepted_at) values (gen_random_uuid(), $1, 'v1', now())", [ALICE])).rejects.toThrow(/row-level security/);
+  });
+
+  it("another user cannot change or delete it", async () => {
+    await as(BOB, "update public.profiles set months_training = 9 where user_id = $1", [ALICE]);
+    await as(BOB, "delete from public.profiles where user_id = $1", [ALICE]).catch(() => undefined);
+    expect(await as(ALICE, "select months_training from public.profiles")).toEqual([{ months_training: 3 }]);
+  });
+
+  it("signed-out visitors (anon) cannot read or write anything", async () => {
+    await expect(as(null, "select * from public.profiles")).rejects.toThrow(/permission denied/);
+    await expect(as(null, "select * from public.consents")).rejects.toThrow(/permission denied/);
+    await expect(as(null, profileSql, [BOB, "2026-10-08T10:00:00Z"])).rejects.toThrow(/permission denied/);
+  });
+
+  it("consents are private and append-only", async () => {
+    const id = "aaaaaaaa-0000-0000-0000-000000000001";
+    await as(ALICE, "insert into public.consents (id, user_id, consent_version, accepted_at) values ($1, $2, 'draft-1', '2026-10-08T10:00:00Z')", [id, ALICE]);
+    expect(await as(BOB, "select * from public.consents")).toEqual([]);
+    await expect(as(ALICE, "update public.consents set consent_version = 'x' where id = $1", [id])).rejects.toThrow(/permission denied/);
+    await expect(as(ALICE, "delete from public.consents where id = $1", [id])).rejects.toThrow(/permission denied/);
+    expect(await as(ALICE, "select consent_version from public.consents")).toEqual([{ consent_version: "draft-1" }]);
+  });
+
+  it("retrying the same consent upload with the same id does not create a duplicate", async () => {
+    const id = "aaaaaaaa-0000-0000-0000-000000000001";
+    await as(ALICE, "insert into public.consents (id, user_id, consent_version, accepted_at) values ($1, $2, 'draft-1', '2026-10-08T10:00:00Z') on conflict (id) do nothing", [id, ALICE]);
+    expect(await as(ALICE, "select count(*)::int as n from public.consents")).toEqual([{ n: 1 }]);
+  });
+});
+
+describe("profile conflicts: newest write wins (DECISIONS S1)", () => {
+  it("a newer update is applied", async () => {
+    await as(ALICE, "update public.profiles set program = '4-day', updated_at = '2026-10-08T12:00:00Z' where user_id = $1", [ALICE]);
+    expect(await as(ALICE, "select program from public.profiles")).toEqual([{ program: "4-day" }]);
+  });
+
+  it("a stale update from an offline phone is ignored", async () => {
+    await as(ALICE, "update public.profiles set program = '3-day', months_training = 11, updated_at = '2026-10-08T11:00:00Z' where user_id = $1", [ALICE]);
+    expect(await as(ALICE, "select program, months_training from public.profiles")).toEqual([{ program: "4-day", months_training: 3 }]);
+  });
+
+  it("values outside the allowed range are rejected", async () => {
+    await expect(as(ALICE, "update public.profiles set months_training = 61, updated_at = '2026-10-08T13:00:00Z'")).rejects.toThrow(/check constraint/);
+    await expect(as(ALICE, "update public.profiles set program = '5-day', updated_at = '2026-10-08T13:00:00Z'")).rejects.toThrow(/check constraint/);
+  });
+});
+
+describe("account deletion", () => {
+  it("removes the signed-in user and all of their rows, and nobody else's", async () => {
+    await as(BOB, profileSql, [BOB, "2026-10-08T10:00:00Z"]);
+    await as(ALICE, "select public.delete_my_account()");
+    await db.exec("reset role");
+    expect((await db.query("select id from auth.users")).rows).toEqual([{ id: BOB }]);
+    expect((await db.query("select user_id from public.profiles")).rows).toEqual([{ user_id: BOB }]);
+    expect((await db.query("select * from public.consents")).rows).toEqual([]);
+  });
+
+  it("is not available to signed-out visitors", async () => {
+    await expect(as(null, "select public.delete_my_account()")).rejects.toThrow(/permission denied/);
+  });
+
+  it("does nothing for a caller with no user id", async () => {
+    await db.exec("reset role; select set_config('request.jwt.claim.sub', '', false); set role authenticated;");
+    await expect(db.query("select public.delete_my_account()")).rejects.toThrow(/not signed in/);
+    await db.exec("reset role");
+  });
+});

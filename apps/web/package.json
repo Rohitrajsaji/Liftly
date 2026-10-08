@@ -14,12 +14,14 @@
   "dependencies": {
     "@liftly/catalog": "workspace:*",
     "@liftly/engine": "workspace:*",
+    "@supabase/supabase-js": "^2.117.3",
     "dexie": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16",
     "@playwright/test": "1.56.1",
     "@tailwindcss/vite": "^4.1.0",
     "@types/node": "^22.10.0",
