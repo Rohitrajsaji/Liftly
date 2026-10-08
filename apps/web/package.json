@@ -20,7 +20,8 @@
     "dexie": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "workbox-window": "^7.4.1"
+    "workbox-window": "^7.4.1",
+    "@liftly/workout": "workspace:*"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.16",

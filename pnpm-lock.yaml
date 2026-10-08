@@ -16,6 +16,9 @@ importers:
       '@liftly/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@liftly/workout':
+        specifier: workspace:*
+        version: link:../../packages/workout
       '@supabase/supabase-js':
         specifier: ^2.117.3
         version: 2.117.3
@@ -96,6 +99,25 @@ importers:
       fast-check:
         specifier: ^3.23.0
         version: 3.23.2
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.5)(lightningcss@1.32.0)(terser@5.51.2)
+
+  packages/workout:
+    dependencies:
+      '@liftly/catalog':
+        specifier: workspace:*
+        version: link:../catalog
+      '@liftly/engine':
+        specifier: workspace:*
+        version: link:../engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.5
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

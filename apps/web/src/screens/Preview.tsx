@@ -8,14 +8,34 @@ export interface PreviewAccount {
 }
 
 /** `account` is null when the app has no server configured; the preview then makes no mention of accounts. */
-export function Preview({ programId, onChangeProgram, account }: { readonly programId: ProgramId; readonly onChangeProgram: () => void; readonly account: PreviewAccount | null }) {
+export function Preview({
+  programId,
+  onChangeProgram,
+  account,
+  onContinue,
+  onBack,
+}: {
+  readonly programId: ProgramId;
+  readonly onChangeProgram: () => void;
+  readonly account: PreviewAccount | null;
+  /** First visit: go on to the first workout. Absent when the plan is opened from Today. */
+  readonly onContinue?: () => void;
+  /** Opened from Today: go back. */
+  readonly onBack?: () => void;
+}) {
   const plan = planPreview(programId);
   return (
     <Screen
       title="Your plan"
       actions={
         <>
-          {account !== null && !account.signedIn && <Button onClick={account.onCreate}>Create account to save your plan</Button>}
+          {onContinue !== undefined && <Button onClick={onContinue}>Continue to your first workout</Button>}
+          {onBack !== undefined && <Button onClick={onBack}>Back to today</Button>}
+          {account !== null && !account.signedIn && (
+            <Button variant={onContinue === undefined ? "primary" : "secondary"} onClick={account.onCreate}>
+              Create account to save your plan
+            </Button>
+          )}
           <Button variant="secondary" onClick={onChangeProgram}>
             Change program
           </Button>

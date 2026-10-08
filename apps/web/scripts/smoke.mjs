@@ -18,13 +18,15 @@ const fresh = () => createClient(url, key, { auth: { persistSession: false, auto
 
 // Part 1: signed out.
 const anon = fresh();
-for (const table of ["profiles", "consents"]) {
+for (const table of ["profiles", "consents", "events", "ladders"]) {
   const { data, error } = await anon.from(table).select("*");
   // Either a permission error, or no rows at all. "relation does not exist" means the migration was not run.
   const missing = /does not exist|schema cache/i.test(error?.message ?? "");
   check(`${table}: table exists (migration ran)`, !missing, error?.message);
   check(`${table}: signed-out read returns nothing`, error !== null || (data ?? []).length === 0, JSON.stringify(data));
-  const w = await anon.from(table).insert(table === "profiles" ? { user_id: "00000000-0000-0000-0000-000000000000", months_training: 1, program: "3-day", start_date: "2026-01-01", updated_at: new Date().toISOString() } : { id: crypto.randomUUID(), user_id: "00000000-0000-0000-0000-000000000000", consent_version: "smoke", accepted_at: new Date().toISOString() });
+  const zero = "00000000-0000-0000-0000-000000000000";
+  const rows = { events: { id: crypto.randomUUID(), user_id: zero, kind: "session", occurred_at: new Date().toISOString(), data: {} }, ladders: { user_id: zero, exercise_id: "leg_press", loads_g: [10000, 20000], updated_at: new Date().toISOString() } };
+  const w = await anon.from(table).insert(rows[table] ?? (table === "profiles" ? { user_id: "00000000-0000-0000-0000-000000000000", months_training: 1, program: "3-day", start_date: "2026-01-01", updated_at: new Date().toISOString() } : { id: crypto.randomUUID(), user_id: "00000000-0000-0000-0000-000000000000", consent_version: "smoke", accepted_at: new Date().toISOString() }));
   check(`${table}: signed-out write is refused`, w.error !== null);
 }
 const del = await anon.rpc("delete_my_account");

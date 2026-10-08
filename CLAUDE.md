@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). The web app (`apps/web`, React + Vite PWA) has onboarding, the plan preview, email-code sign-in, consent, an upload outbox and account deletion, working offline; answers live on the device in IndexedDB (Dexie) and sync to Supabase (`supabase/migrations`). No workout logging or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
+Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). The web app (`apps/web`, React + Vite PWA) has onboarding, the plan preview, email-code sign-in, consent, an upload outbox and account deletion, working offline; answers live on the device in IndexedDB (Dexie) and sync to Supabase (`supabase/migrations`). Workout logging (M6) is built: `packages/workout` ties programs and engine into today's workout, calibration ramp, effort taps, pain and the post-session decision; the web app has gym weights, Today, exercise logging, rest timer, pain flow and summary. No Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
 
 Fixed platform decisions: installable web app (PWA), kg only, India market, offline logging.
 
@@ -28,6 +28,12 @@ Node 22 and pnpm 10. From the repository root:
 - Defaults for [OPEN]/[ASSUMPTION] items live in `src/assumptions.ts` or in the one function marked "(default)", and are listed in `DECISIONS.md` section 2.
 - `packages/catalog` is checked field by field against PROGRAMS.md (`test/programs.test.ts`). Change PROGRAMS.md first, never only the catalog. Swap-only exercises are in PROGRAMS.md §3a.
 - Every TESTING.md scenario has a test whose name starts with its ID (`test/coverage.test.ts` enforces this). Never edit an expected value to make code pass: record the conflict in `ENGINE_QUESTIONS.md` and leave the test red.
+
+## Workout package rules
+
+- `packages/workout` never invents a number: weights and reps come from `@liftly/engine` and the gym ladder. State is rebuilt from events (`buildState`); the stored `decision` of each finished exercise is applied, never recomputed.
+- Pain and swap wording is fixed text in `src/text.ts` (SAFETY drafts, pending professional approval).
+- `apps/web/e2e/screenshots.spec.ts` only runs with `SHOTS=<dir>`.
 
 ## Web app rules
 

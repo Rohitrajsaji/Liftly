@@ -2,7 +2,7 @@
 // Every upload is idempotent (client-made ids; newest profile wins on the server), so a retry after a dropped
 // connection never creates a duplicate. Items go oldest first and a failure stops the run, so order is kept.
 
-import type { Backend, ConsentRow, ProfileRow } from "./backend";
+import type { Backend, ConsentRow, EventRow, LadderRow, ProfileRow } from "./backend";
 import { BackendError } from "./backend";
 import type { LiftlyDb, OutboxItem } from "./db";
 
@@ -18,6 +18,16 @@ export async function enqueueProfile(db: LiftlyDb, row: ProfileRow, now: Date): 
 /** Queues a consent. Its id is the primary key, so queueing it twice is one upload. */
 export async function enqueueConsent(db: LiftlyDb, row: ConsentRow, now: Date): Promise<void> {
   await db.outbox.put({ id: `consents:${row.id}`, userId: row.user_id, table: "consents", row: { ...row }, createdAt: now.toISOString() });
+}
+
+/** Queues a finished workout or follow-up answer. The id is the event's own, so it uploads once. */
+export async function enqueueEvent(db: LiftlyDb, row: EventRow, now: Date): Promise<void> {
+  await db.outbox.put({ id: `events:${row.id}`, userId: row.user_id, table: "events", row: { ...row }, createdAt: now.toISOString() });
+}
+
+/** Queues a gym ladder. Only the latest version per exercise is kept. */
+export async function enqueueLadder(db: LiftlyDb, row: LadderRow, now: Date): Promise<void> {
+  await db.outbox.put({ id: `ladders:${row.user_id}:${row.exercise_id}`, userId: row.user_id, table: "ladders", row: { ...row }, createdAt: now.toISOString() });
 }
 
 export async function pendingCount(db: LiftlyDb, userId: string): Promise<number> {
@@ -41,8 +51,16 @@ export function flushOutbox(db: LiftlyDb, backend: Backend, userId: string): Pro
 }
 
 async function push(backend: Backend, item: OutboxItem): Promise<void> {
-  if (item.table === "profiles") return backend.pushProfile(item.row as unknown as ProfileRow);
-  return backend.pushConsent(item.row as unknown as ConsentRow);
+  switch (item.table) {
+    case "profiles":
+      return backend.pushProfile(item.row as unknown as ProfileRow);
+    case "consents":
+      return backend.pushConsent(item.row as unknown as ConsentRow);
+    case "events":
+      return backend.pushEvent(item.row as unknown as EventRow);
+    case "ladders":
+      return backend.pushLadder(item.row as unknown as LadderRow);
+  }
 }
 
 async function doFlush(db: LiftlyDb, backend: Backend, userId: string): Promise<FlushResult> {

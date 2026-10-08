@@ -1,11 +1,12 @@
-// Runs the real migration (supabase/migrations/0001_accounts.sql) in an in-process Postgres (PGlite) with a
+// Runs the real migrations (supabase/migrations/*.sql, in order) in an in-process Postgres (PGlite) with a
 // stand-in for Supabase's auth schema, and checks the privacy rules: a user can only see and change their own rows.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
-const MIGRATION = readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", "0001_accounts.sql"), "utf8");
+const migration = (name: string) => readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", name), "utf8");
+const MIGRATIONS = ["0001_accounts.sql", "0002_workouts.sql"].map(migration);
 
 const ALICE = "11111111-1111-1111-1111-111111111111";
 const BOB = "22222222-2222-2222-2222-222222222222";
@@ -37,7 +38,7 @@ beforeAll(async () => {
     grant execute on function auth.uid() to anon, authenticated;
     insert into auth.users values ('${ALICE}'), ('${BOB}');
   `);
-  await db.exec(MIGRATION);
+  for (const m of MIGRATIONS) await db.exec(m);
 });
 
 describe("row-level security (M5 exit: a user can't read another user's rows)", () => {
@@ -118,5 +119,65 @@ describe("account deletion", () => {
     await db.exec("reset role; select set_config('request.jwt.claim.sub', '', false); set role authenticated;");
     await expect(db.query("select public.delete_my_account()")).rejects.toThrow(/not signed in/);
     await db.exec("reset role");
+  });
+});
+
+const E1 = "eeeeeeee-0000-0000-0000-000000000001";
+const eventSql = "insert into public.events (id, user_id, kind, occurred_at, data) values ($1, $2, 'session', '2026-10-08T10:00:00Z', '{\"slotKey\":\"A\"}')";
+const ladderSql = "insert into public.ladders (user_id, exercise_id, loads_g, updated_at) values ($1, 'leg_press', '{5000,10000}', $2)";
+
+describe("workout history and ladders (M6)", () => {
+  beforeAll(async () => {
+    await db.exec("insert into auth.users values ('33333333-3333-3333-3333-333333333333') on conflict do nothing");
+  });
+  const CARA = "33333333-3333-3333-3333-333333333333";
+
+  it("a user can store and read their own workout and ladder", async () => {
+    await as(CARA, eventSql, [E1, CARA]);
+    await as(CARA, ladderSql, [CARA, "2026-10-08T10:00:00Z"]);
+    expect(await as(CARA, "select id, kind from public.events")).toEqual([{ id: E1, kind: "session" }]);
+    expect(await as(CARA, "select exercise_id, loads_g from public.ladders")).toEqual([{ exercise_id: "leg_press", loads_g: [5000, 10000] }]);
+  });
+
+  it("another user sees none of it and cannot write in their name", async () => {
+    expect(await as(BOB, "select * from public.events")).toEqual([]);
+    expect(await as(BOB, "select * from public.ladders")).toEqual([]);
+    await expect(as(BOB, eventSql, ["eeeeeeee-0000-0000-0000-000000000002", CARA])).rejects.toThrow(/row-level security/);
+    await expect(as(BOB, ladderSql, [CARA, "2026-10-08T10:00:00Z"])).rejects.toThrow(/row-level security/);
+  });
+
+  it("signed-out visitors get nothing", async () => {
+    await expect(as(null, "select * from public.events")).rejects.toThrow(/permission denied/);
+    await expect(as(null, "select * from public.ladders")).rejects.toThrow(/permission denied/);
+  });
+
+  it("events are append-only and a retried upload creates no duplicate", async () => {
+    await as(CARA, `${eventSql} on conflict (id) do nothing`, [E1, CARA]);
+    expect(await as(CARA, "select count(*)::int as n from public.events")).toEqual([{ n: 1 }]);
+    await expect(as(CARA, "update public.events set kind = 'pain_followup' where id = $1", [E1])).rejects.toThrow(/permission denied/);
+    await expect(as(CARA, "delete from public.events where id = $1", [E1])).rejects.toThrow(/permission denied/);
+  });
+
+  it("only the allowed kinds are accepted", async () => {
+    await expect(as(CARA, "insert into public.events (id, user_id, kind, occurred_at, data) values (gen_random_uuid(), $1, 'other', now(), '{}')", [CARA])).rejects.toThrow(/check constraint/);
+  });
+
+  it("a ladder keeps the newest write; an older one from an offline phone is ignored", async () => {
+    await as(CARA, "update public.ladders set loads_g = '{5000,10000,15000}', updated_at = '2026-10-08T12:00:00Z' where exercise_id = 'leg_press'");
+    await as(CARA, "update public.ladders set loads_g = '{1000}', updated_at = '2026-10-08T11:00:00Z' where exercise_id = 'leg_press'");
+    expect(await as(CARA, "select loads_g from public.ladders")).toEqual([{ loads_g: [5000, 10000, 15000] }]);
+  });
+
+  it("a ladder needs at least one non-negative load; 0 (bodyweight) is allowed", async () => {
+    await expect(as(CARA, "insert into public.ladders (user_id, exercise_id, loads_g, updated_at) values ($1, 'x', '{}', now())", [CARA])).rejects.toThrow(/check constraint/);
+    await expect(as(CARA, "insert into public.ladders (user_id, exercise_id, loads_g, updated_at) values ($1, 'x', '{-5}', now())", [CARA])).rejects.toThrow(/check constraint/);
+    await as(CARA, "insert into public.ladders (user_id, exercise_id, loads_g, updated_at) values ($1, 'back_extension_45', '{0,5000}', now())", [CARA]);
+  });
+
+  it("deleting the account removes workouts and ladders too", async () => {
+    await as(CARA, "select public.delete_my_account()");
+    await db.exec("reset role");
+    expect((await db.query("select * from public.events")).rows).toEqual([]);
+    expect((await db.query("select * from public.ladders")).rows).toEqual([]);
   });
 });

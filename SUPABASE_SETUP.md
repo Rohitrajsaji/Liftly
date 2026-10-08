@@ -11,6 +11,7 @@ What to create, what to change, and which values to send. About 15 minutes. All 
 2. **Create the tables.** Open **SQL Editor → New query**, paste the whole of
    [`supabase/migrations/0001_accounts.sql`](supabase/migrations/0001_accounts.sql), and press **Run**. It should say "Success. No rows returned".
    It creates two tables (`profiles`, `consents`), their privacy rules, and the delete-my-account function. It does not touch any other setting.
+   Then do the same with [`supabase/migrations/0002_workouts.sql`](supabase/migrations/0002_workouts.sql) (M6: workouts and gym weights; run it after 0001).
 3. **Make the emails send a code, not a link.** Open **Authentication → Emails → Templates**. For both **Confirm sign up** and **Magic link**, replace the body with:
 
    ```html

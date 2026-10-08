@@ -22,6 +22,22 @@ export interface ConsentRow {
   readonly accepted_at: string;
 }
 
+/** One fact that builds the training plan (supabase/migrations/0002_workouts.sql). `data` is the PlanEvent. */
+export interface EventRow {
+  readonly id: string;
+  readonly user_id: string;
+  readonly kind: "session" | "pain_followup";
+  readonly occurred_at: string;
+  readonly data: unknown;
+}
+
+export interface LadderRow {
+  readonly user_id: string;
+  readonly exercise_id: string;
+  readonly loads_g: readonly number[];
+  readonly updated_at: string;
+}
+
 export type BackendErrorKind = "offline" | "rate_limited" | "bad_code" | "invalid_email" | "other";
 
 export class BackendError extends Error {
@@ -47,4 +63,10 @@ export interface Backend {
   /** Idempotent: a repeated id is ignored. */
   pushConsent(row: ConsentRow): Promise<void>;
   fetchProfile(): Promise<ProfileRow | null>;
+  /** Idempotent: a repeated id is ignored. */
+  pushEvent(row: EventRow): Promise<void>;
+  /** Idempotent: the newest updated_at wins on the server. */
+  pushLadder(row: LadderRow): Promise<void>;
+  fetchEvents(): Promise<EventRow[]>;
+  fetchLadders(): Promise<LadderRow[]>;
 }

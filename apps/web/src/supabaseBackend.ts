@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { BackendError, type Backend, type ConsentRow, type ProfileRow, type Session } from "./backend";
+import { BackendError, type Backend, type ConsentRow, type EventRow, type LadderRow, type ProfileRow, type Session } from "./backend";
 
 interface ErrorLike {
   readonly message?: string;
@@ -72,6 +72,24 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       const { data, error } = await client.from("profiles").select("user_id, months_training, program, start_date, updated_at").maybeSingle();
       if (error) return fail(error, "Could not load the profile");
       return (data as ProfileRow | null) ?? null;
+    },
+    async pushEvent(row: EventRow) {
+      const { error } = await client.from("events").upsert(row, { onConflict: "id", ignoreDuplicates: true });
+      if (error) fail(error, "Could not save the workout");
+    },
+    async pushLadder(row: LadderRow) {
+      const { error } = await client.from("ladders").upsert(row, { onConflict: "user_id,exercise_id" });
+      if (error) fail(error, "Could not save the gym weights");
+    },
+    async fetchEvents() {
+      const { data, error } = await client.from("events").select("id, user_id, kind, occurred_at, data").order("occurred_at", { ascending: true });
+      if (error) return fail(error, "Could not load workouts");
+      return (data ?? []) as EventRow[];
+    },
+    async fetchLadders() {
+      const { data, error } = await client.from("ladders").select("user_id, exercise_id, loads_g, updated_at");
+      if (error) return fail(error, "Could not load gym weights");
+      return (data ?? []) as LadderRow[];
     },
   };
 }

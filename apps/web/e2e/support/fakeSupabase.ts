@@ -20,7 +20,24 @@ interface Consent {
   accepted_at: string;
 }
 
+interface EventRow {
+  id: string;
+  user_id: string;
+  kind: string;
+  occurred_at: string;
+  data: unknown;
+}
+interface LadderRow {
+  user_id: string;
+  exercise_id: string;
+  loads_g: number[];
+  updated_at: string;
+}
+
 export class FakeSupabase {
+  events = new Map<string, EventRow>();
+  ladders = new Map<string, LadderRow>();
+  eventWrites = 0;
   users = new Map<string, string>(); // email -> user id
   profiles = new Map<string, Profile>();
   consents = new Map<string, Consent>();
@@ -141,6 +158,8 @@ export class FakeSupabase {
         this.rpcCalls.push(userId);
         this.profiles.delete(userId);
         for (const [id, c] of this.consents) if (c.user_id === userId) this.consents.delete(id);
+        for (const [id, e] of this.events) if (e.user_id === userId) this.events.delete(id);
+        for (const [k, l] of this.ladders) if (l.user_id === userId) this.ladders.delete(k);
         this.users.delete(this.emailOf(userId));
         return this.json(route, 204, null);
       }
@@ -161,6 +180,23 @@ export class FakeSupabase {
         const row = body() as unknown as Consent;
         if (row.user_id !== userId) return this.json(route, 403, { code: "42501", message: "new row violates row-level security policy" });
         if (!this.consents.has(row.id)) this.consents.set(row.id, row);
+        return this.json(route, 201, null);
+      }
+      if (path === "/rest/v1/events") {
+        if (req.method() === "GET") return this.json(route, 200, [...this.events.values()].filter((e) => e.user_id === userId));
+        const row = body() as unknown as EventRow;
+        if (row.user_id !== userId) return this.json(route, 403, { code: "42501", message: "new row violates row-level security policy" });
+        this.eventWrites += 1;
+        if (!this.events.has(row.id)) this.events.set(row.id, row);
+        return this.json(route, 201, null);
+      }
+      if (path === "/rest/v1/ladders") {
+        if (req.method() === "GET") return this.json(route, 200, [...this.ladders.values()].filter((l) => l.user_id === userId));
+        const row = body() as unknown as LadderRow;
+        if (row.user_id !== userId) return this.json(route, 403, { code: "42501", message: "new row violates row-level security policy" });
+        const key = `${row.user_id}/${row.exercise_id}`;
+        const old = this.ladders.get(key);
+        if (old === undefined || Date.parse(row.updated_at) >= Date.parse(old.updated_at)) this.ladders.set(key, row);
         return this.json(route, 201, null);
       }
     }

@@ -6,6 +6,7 @@ import type { LiftlyDb } from "./db";
 import { loadStoredProfile, saveProfile } from "./db";
 import { isOnboarded, type Profile } from "./onboarding";
 import { enqueueConsent, enqueueProfile, flushOutbox, type FlushResult } from "./sync";
+import { pullRemote, queueLocalWork } from "./workoutStore";
 
 /** The profile as the server stores it, or null while any answer is missing. */
 export function toProfileRow(p: Profile, userId: string, updatedAt: string): ProfileRow | null {
@@ -55,6 +56,10 @@ export async function attachToAccount(db: LiftlyDb, backend: Backend, session: S
     await enqueueConsent(db, row, now);
     await db.consent.delete(c.id);
   }
+
+  // Workouts and gym weights made on this device while signed out join the account; the account's come here.
+  await queueLocalWork(db, session.userId, now);
+  await pullRemote(db, backend, session);
 
   const local = await loadStoredProfile(db);
   const server = await backend.fetchProfile();

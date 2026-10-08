@@ -3,7 +3,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { attachToAccount, fromProfileRow, recordConsent, resolveProfile, syncProfileChange, toProfileRow } from "../src/account";
-import { BackendError, type Backend, type ConsentRow, type ProfileRow, type Session } from "../src/backend";
+import { BackendError, type Backend, type ConsentRow, type EventRow, type LadderRow, type ProfileRow, type Session } from "../src/backend";
 import { CONSENT_VERSION } from "../src/consent";
 import { LiftlyDb, loadStoredProfile, saveProfile, wipeLocalData } from "../src/db";
 import type { Profile } from "../src/onboarding";
@@ -54,6 +54,28 @@ class FakeServer implements Backend {
   async fetchProfile() {
     this.check();
     return this.profiles.get(this.user.userId) ?? null;
+  }
+  events = new Map<string, EventRow>();
+  ladders = new Map<string, LadderRow>();
+  async pushEvent(row: EventRow) {
+    this.check();
+    this.uploads += 1;
+    if (!this.events.has(row.id)) this.events.set(row.id, row);
+  }
+  async pushLadder(row: LadderRow) {
+    this.check();
+    this.uploads += 1;
+    const key = `${row.user_id}/${row.exercise_id}`;
+    const old = this.ladders.get(key);
+    if (old === undefined || Date.parse(row.updated_at) >= Date.parse(old.updated_at)) this.ladders.set(key, row);
+  }
+  async fetchEvents() {
+    this.check();
+    return [...this.events.values()].filter((e) => e.user_id === this.user.userId);
+  }
+  async fetchLadders() {
+    this.check();
+    return [...this.ladders.values()].filter((l) => l.user_id === this.user.userId);
   }
 }
 

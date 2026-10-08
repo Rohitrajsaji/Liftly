@@ -2,6 +2,7 @@
 // outbox before an account exists (DECISIONS C7); at sign-in the local answers are queued and uploaded.
 
 import Dexie, { type EntityTable } from "dexie";
+import type { PlanEvent, SessionRecord } from "@liftly/workout";
 import { NEW_PROFILE, normalize, type Profile } from "./onboarding";
 
 interface ProfileRow extends Profile {
@@ -20,20 +21,50 @@ export interface LocalConsent {
 export interface OutboxItem {
   readonly id: string;
   readonly userId: string;
-  readonly table: "profiles" | "consents";
+  readonly table: "profiles" | "consents" | "events" | "ladders";
   readonly row: Record<string, unknown>;
   readonly createdAt: string;
+}
+
+/** A finished workout or a pain follow-up answer. Facts only: they are never edited. */
+export interface EventRecord {
+  readonly id: string;
+  readonly kind: PlanEvent["kind"];
+  readonly at: string;
+  readonly event: PlanEvent;
+  /** The account this was queued for, or null while there is no account (DECISIONS C7). */
+  readonly queuedFor: string | null;
+}
+
+/** The loads the user's gym has for one exercise. */
+export interface LadderRecord {
+  readonly exerciseId: string;
+  readonly loadsG: readonly number[];
+  readonly updatedAt: string;
+  /** Set on an exercise the user edited on its own, so changing the equipment list does not overwrite it. */
+  readonly custom: boolean;
+  readonly queuedFor: string | null;
+}
+
+/** The workout in progress. There is at most one, and it lives only on this device until it is finished. */
+export interface ActiveRecord {
+  readonly id: "current";
+  readonly session: SessionRecord;
 }
 
 export class LiftlyDb extends Dexie {
   profile!: EntityTable<ProfileRow, "id">;
   consent!: EntityTable<LocalConsent, "id">;
   outbox!: EntityTable<OutboxItem, "id">;
+  events!: EntityTable<EventRecord, "id">;
+  ladders!: EntityTable<LadderRecord, "exerciseId">;
+  active!: EntityTable<ActiveRecord, "id">;
 
   constructor(name = "liftly") {
     super(name);
     this.version(1).stores({ profile: "id" });
     this.version(2).stores({ profile: "id", consent: "id", outbox: "id, userId, createdAt" });
+    this.version(3).stores({ profile: "id", consent: "id", outbox: "id, userId, createdAt", events: "id, at, kind", ladders: "exerciseId", active: "id" });
   }
 }
 
@@ -50,8 +81,8 @@ export async function loadStoredProfile(db: LiftlyDb): Promise<{ readonly profil
 
 /** Erases everything stored on this device (used when an account is deleted). */
 export async function wipeLocalData(db: LiftlyDb): Promise<void> {
-  await db.transaction("rw", db.profile, db.consent, db.outbox, async () => {
-    await Promise.all([db.profile.clear(), db.consent.clear(), db.outbox.clear()]);
+  await db.transaction("rw", [db.profile, db.consent, db.outbox, db.events, db.ladders, db.active], async () => {
+    await Promise.all([db.profile.clear(), db.consent.clear(), db.outbox.clear(), db.events.clear(), db.ladders.clear(), db.active.clear()]);
   });
 }
 

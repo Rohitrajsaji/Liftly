@@ -1,11 +1,18 @@
+import { exerciseState, reportPain, type PainInput } from "@liftly/workout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { attachToAccount, recordConsent, syncProfileChange } from "./account";
 import type { Backend, Session } from "./backend";
 import { SUPABASE } from "./config";
 import { LiftlyDb, loadProfile, saveProfile, wipeLocalData } from "./db";
-import { back, changeProgram, next, NEW_PROFILE, stampStartDate, type Profile } from "./onboarding";
+import { back, changeProgram, isOnboarded, next, NEW_PROFILE, stampStartDate, type Profile } from "./onboarding";
 import { Account } from "./screens/Account";
 import { Consent } from "./screens/Consent";
+import { Exercise } from "./screens/Exercise";
+import { GymSetup } from "./screens/GymSetup";
+import { Home, dueFollowUps } from "./screens/Home";
+import { PainReport, PainResult } from "./screens/Pain";
+import { Summary } from "./screens/Summary";
+import { Workout } from "./screens/Workout";
 import { Experience } from "./screens/Experience";
 import { Preview } from "./screens/Preview";
 import { ProgramChoice } from "./screens/ProgramChoice";
@@ -15,7 +22,12 @@ import { useInstallPrompt, useOnline } from "./shell";
 import { createSupabaseBackend } from "./supabaseBackend";
 import { flushOutbox, pendingCount } from "./sync";
 
+import { useWorkout } from "./useWorkout";
+import { exerciseName as exerciseNameOf } from "./gym";
+
 type View = "onboarding" | "consent" | "email" | "code" | "account";
+/** Where the user is inside the app once onboarded. */
+type Screen = "home" | "gym" | "plan" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
 
 const db = new LiftlyDb();
 const backend: Backend | null = SUPABASE === null ? null : createSupabaseBackend(SUPABASE.url, SUPABASE.key);
@@ -30,6 +42,11 @@ export function App() {
   const install = useInstallPrompt();
   const main = useRef<HTMLElement>(null);
   const joining = useRef(false);
+  const sessionRef = useRef<Session | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [screen, setScreen] = useState<Screen | "intro" | null>(null);
+  const [exIndex, setExIndex] = useState(0);
+  const [painOutcome, setPainOutcome] = useState<{ onSwap: boolean; professionalHelp: boolean } | null>(null);
 
   const refreshPending = useCallback(async (s: Session | null) => {
     setPending(s === null ? 0 : await pendingCount(db, s.userId));
@@ -48,6 +65,7 @@ export function App() {
           try {
             const result = await attachToAccount(db, backend, s, new Date());
             if (result.adopted !== null) setProfile(result.adopted);
+            setReloadKey((k) => k + 1);
           } finally {
             joining.current = false;
           }
@@ -61,6 +79,10 @@ export function App() {
     },
     [refreshPending],
   );
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     void (async () => {
@@ -81,7 +103,7 @@ export function App() {
   // Move focus to the new screen's heading so screen readers announce it.
   useEffect(() => {
     main.current?.querySelector<HTMLElement>("[data-screen-title]")?.focus();
-  }, [profile?.step, view]);
+  }, [profile?.step, view, screen, exIndex]);
 
   const update = useCallback(
     (p: Profile) => {
@@ -102,7 +124,23 @@ export function App() {
     [session],
   );
 
+  const onSaved = useCallback(() => {
+    void flush(sessionRef.current);
+  }, [flush]);
+  const workout = useWorkout(db, profile ?? NEW_PROFILE, session, onSaved, reloadKey);
+
   if (profile === null) return null;
+  const onboarded = isOnboarded(profile) && profile.step === "preview" && profile.programId !== null;
+  const where: Screen | "intro" = screen ?? (workout.hasProgress ? "home" : "intro");
+  const accountPrompt = backend !== null && session === null ? { onCreate: () => setView("consent") } : null;
+  const nextOpen = (from: number): number | null => {
+    const list = workout.active?.exercises ?? [];
+    for (let k = 1; k <= list.length; k++) {
+      const i = (from + k) % list.length;
+      if (i !== from && (list[i]?.status === "pending" || list[i]?.status === "in_progress")) return i;
+    }
+    return null;
+  };
 
   const finishSignIn = async (s: Session) => {
     if (backend === null) return;
@@ -186,6 +224,8 @@ export function App() {
               setSession(null);
               setPending(0);
               setProfile(NEW_PROFILE);
+              setScreen(null);
+              setReloadKey((k) => k + 1);
               setView("onboarding");
             }}
           />
@@ -197,8 +237,96 @@ export function App() {
         {view === "onboarding" && profile.step === "program" && (
           <ProgramChoice initial={profile.programId} onBack={() => update(back(profile))} onDone={(id) => update(next({ ...profile, programId: id }))} />
         )}
-        {view === "onboarding" && profile.step === "preview" && profile.programId !== null && (
-          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} />
+        {view === "onboarding" && onboarded && profile.programId !== null && where === "intro" && (
+          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onContinue={() => setScreen("home")} />
+        )}
+        {view === "onboarding" && onboarded && profile.programId !== null && where === "plan" && (
+          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onBack={() => setScreen("home")} />
+        )}
+        {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "home" && workout.finished === null && (
+          <Home
+            plan={workout.plan}
+            planError={workout.missingLadders.length > 0 ? null : workout.planError}
+            missingGym={workout.missingLadders.length > 0}
+            active={workout.active}
+            followUps={dueFollowUps(workout.data.state.openFollowUps, new Date())}
+            lastDone={workout.lastDone}
+            workoutName={workout.workoutName}
+            onStart={() => {
+              workout.start();
+              setScreen("workout");
+            }}
+            onContinue={() => setScreen("workout")}
+            onGym={() => setScreen("gym")}
+            onPlan={() => setScreen("plan")}
+            onAnswer={(id, still) => void workout.answerFollowUp(id, still)}
+          />
+        )}
+        {view === "onboarding" && onboarded && workout.ctx !== null && where === "gym" && (
+          <GymSetup
+            programId={workout.ctx.programId}
+            ladders={workout.data.ladders}
+            custom={workout.data.custom}
+            locked={workout.active !== null}
+            onSave={workout.saveGym}
+            onDone={() => setScreen("home")}
+          />
+        )}
+        {view === "onboarding" && onboarded && workout.active !== null && where === "workout" && (
+          <Workout
+            session={workout.active}
+            workoutName={workout.workoutName}
+            accountPrompt={accountPrompt}
+            onOpen={(i) => {
+              setExIndex(i);
+              setScreen("exercise");
+            }}
+            onFinish={() => {
+              void workout.finish().then(() => setScreen("summary"));
+            }}
+            onDiscard={() => {
+              void workout.discard().then(() => setScreen("home"));
+            }}
+          />
+        )}
+        {view === "onboarding" && onboarded && workout.active !== null && where === "exercise" && (
+          <Exercise
+            session={workout.active}
+            index={exIndex}
+            previous={exerciseState(workout.data.state, workout.active.exercises[exIndex]?.exerciseId ?? "").lastPerformance}
+            onUpdate={workout.update}
+            onList={() => setScreen("workout")}
+            onNext={nextOpen(exIndex) === null ? null : () => setExIndex(nextOpen(exIndex) ?? exIndex)}
+            onPain={() => setScreen("pain")}
+          />
+        )}
+        {view === "onboarding" && onboarded && workout.active !== null && workout.ctx !== null && where === "pain" && (
+          <PainReport
+            exerciseName={exerciseNameOf(workout.active.exercises[exIndex]?.exerciseId ?? "")}
+            onCancel={() => setScreen("exercise")}
+            onSubmit={(input) => {
+              const cur = workout.active;
+              const ctx = workout.ctx;
+              if (cur === null || ctx === null) return;
+              const result = reportPain(cur, exIndex, workout.data.state, ctx, { pain: { ...input, id: crypto.randomUUID() } satisfies PainInput, now: new Date() });
+              workout.update(() => result.session);
+              setPainOutcome({ onSwap: result.record.onSwap, professionalHelp: result.showProfessionalHelp });
+              setScreen("pain_result");
+            }}
+          />
+        )}
+        {view === "onboarding" && onboarded && where === "pain_result" && painOutcome !== null && (
+          <PainResult onSwap={painOutcome.onSwap} professionalHelp={painOutcome.professionalHelp} onDone={() => setScreen("workout")} />
+        )}
+        {view === "onboarding" && onboarded && where === "summary" && workout.finished !== null && (
+          <Summary
+            session={workout.finished}
+            accountPrompt={accountPrompt}
+            onHome={() => {
+              workout.leaveSummary();
+              setScreen("home");
+            }}
+          />
         )}
       </main>
     </div>

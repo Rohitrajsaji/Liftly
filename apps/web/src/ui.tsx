@@ -12,14 +12,14 @@ export function Button({ variant = "primary", className = "", ...rest }: ButtonP
   return <button type="button" className={`min-h-14 w-full rounded-xl px-5 text-base font-medium ${look} ${className}`} {...rest} />;
 }
 
-export function Screen({ title, children, actions }: { readonly title: string; readonly children: ReactNode; readonly actions?: ReactNode }) {
+export function Screen({ title, children, actions, flow = false }: { readonly title: string; readonly children: ReactNode; readonly actions?: ReactNode; /** Actions follow the content instead of sticking to the bottom (used where they would cover the main buttons). */ readonly flow?: boolean }) {
   return (
     <section className="flex flex-1 flex-col gap-5">
       <h1 tabIndex={-1} className="text-2xl font-semibold leading-snug outline-none" data-screen-title>
         {title}
       </h1>
       <div className="flex flex-1 flex-col gap-5">{children}</div>
-      {actions !== undefined && <div className="sticky bottom-0 flex flex-col gap-3 bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">{actions}</div>}
+      {actions !== undefined && <div className={`flex flex-col gap-3 bg-bg pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 ${flow ? "" : "sticky bottom-0"}`}>{actions}</div>}
     </section>
   );
 }

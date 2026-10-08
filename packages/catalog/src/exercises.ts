@@ -39,7 +39,6 @@ export const EXERCISES = {
   machine_glute_kickback: { id: "machine_glute_kickback", name: "Machine Glute Kickback", type: "isolation", equipment: "machine", source: P },
   cable_crunch: { id: "cable_crunch", name: "Cable Crunch", type: "isolation", equipment: "cable", source: P },
   machine_pulldown: { id: "machine_pulldown", name: "Machine Pulldown", type: "compound", equipment: "machine", source: P },
-  // [ASSUMPTION] class and equipment inferred from the name; PROGRAMS_QUESTIONS.md PQ5.
   one_arm_dumbbell_row: { id: "one_arm_dumbbell_row", name: "One-Arm Dumbbell Row", type: "compound", equipment: "dumbbell", source: P },
 } as const satisfies Record<string, Exercise>;
 
