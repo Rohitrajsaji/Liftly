@@ -35,6 +35,8 @@ export interface Slot {
 export interface Program {
   readonly id: ProgramId;
   readonly name: string;
+  /** "Frequency" line in PROGRAMS.md. */
+  readonly sessionsPerWeek: number;
   readonly sequence: readonly SlotKey[];
   readonly slots: readonly Slot[];
 }

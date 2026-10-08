@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). No app, database or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
+Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). The web app (`apps/web`, React + Vite PWA) has onboarding and the plan preview, stored on the device in IndexedDB (Dexie) and working offline. No accounts, server database or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
 
 Fixed platform decisions: installable web app (PWA), kg only, India market, offline logging.
 
@@ -15,6 +15,8 @@ Node 22 and pnpm 10. From the repository root:
 - `pnpm install`
 - `pnpm check`: typecheck and all tests
 - `pnpm test` / `pnpm typecheck`
+- `pnpm build`: production build of the web app; `pnpm --filter @liftly/web dev` to run it locally
+- `pnpm e2e`: builds the web app and runs the Playwright browser tests (offline checks included) against `vite preview`. Use the preinstalled Chromium; never run `playwright install` in this environment.
 - One test file: `pnpm --filter @liftly/engine exec vitest run test/scenarios/stall.test.ts`
 - One scenario by ID: `pnpm --filter @liftly/engine exec vitest run -t "S-04"`
 - Tests resting on an open item: `pnpm --filter @liftly/engine exec vitest run -t "OPEN|ASSUMPTION|SPEC QUESTION"`
@@ -26,6 +28,12 @@ Node 22 and pnpm 10. From the repository root:
 - Defaults for [OPEN]/[ASSUMPTION] items live in `src/assumptions.ts` or in the one function marked "(default)", and are listed in `DECISIONS.md` section 2.
 - `packages/catalog` is checked field by field against PROGRAMS.md (`test/programs.test.ts`). Change PROGRAMS.md first, never only the catalog. Swap-only exercises are in PROGRAMS.md §3a.
 - Every TESTING.md scenario has a test whose name starts with its ID (`test/coverage.test.ts` enforces this). Never edit an expected value to make code pass: record the conflict in `ENGINE_QUESTIONS.md` and leave the test red.
+
+## Web app rules
+
+- `apps/web` shows only what `@liftly/catalog` and `@liftly/engine` give it. It never computes weights, reps or sets itself.
+- Nothing is uploaded before an account exists (DECISIONS C7); in M4 everything stays in IndexedDB on the device.
+- Controls are at least 48 px tall and the layout must not scroll sideways at phone width (`e2e/onboarding.spec.ts` checks both).
 
 ## How the spec is organized
 

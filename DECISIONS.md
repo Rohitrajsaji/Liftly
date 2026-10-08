@@ -42,3 +42,5 @@ These are not decisions. Each is a named constant or a single function in `packa
 | 5th ramp set still Easy | That load is the working weight; the 5th set stays a ramp set and does not count as working set 1 | ENGINE §4 (only a Good set is stated to count) |
 | Serious pain and the swap | The swap takes the removed exercise's slot, starting with a ramp | Architecture plan, gaps |
 | Stall counter on first exposure | A first exposure at a new weight starts the window at 1 | ENGINE §7 (counter resets on weight change) |
+| More than 12 months of training at onboarding (web app, M4) | Allowed. The answer is stored as entered and a one-line note says Liftly is built for about the first 12 months | MVP_SCOPE users 0–12 months; nothing says what to do above it |
+| Goal confirmation (web app, M4) | One goal, "build muscle", confirmed with one button; there is no other choice | PRD F1, MVP_SCOPE |

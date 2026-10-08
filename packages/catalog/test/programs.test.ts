@@ -35,6 +35,12 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 describe("catalog matches PROGRAMS.md exactly", () => {
   for (const program of Object.values(PROGRAMS)) {
+    it(`${program.id}: name and sessions per week`, () => {
+      const start = MD.indexOf(`. ${program.name}\n`);
+      expect(start).toBeGreaterThan(-1);
+      const m = MD.slice(start).match(/\*\*Frequency:\*\* (\d+) sessions per week/);
+      expect(Number(m?.[1])).toBe(program.sessionsPerWeek);
+    });
     it(`${program.id}: sequence`, () => {
       const seq = sequenceLine(program.id);
       // The line repeats the first slot to show the loop: A → B → C → A.

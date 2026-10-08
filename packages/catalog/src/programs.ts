@@ -9,6 +9,7 @@ const row = (order: number, exerciseId: ExerciseId, sets: number, swapId: Exerci
 export const THREE_DAY: Program = {
   id: "3-day",
   name: "3-Day Full-Body Program",
+  sessionsPerWeek: 3,
   sequence: ["A", "B", "C"],
   slots: [
     {
@@ -50,6 +51,7 @@ export const THREE_DAY: Program = {
 export const FOUR_DAY: Program = {
   id: "4-day",
   name: "4-Day Upper / Lower Program",
+  sessionsPerWeek: 4,
   sequence: ["U1", "L1", "U2", "L2"],
   slots: [
     {
