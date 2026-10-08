@@ -7,9 +7,9 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { readonly variant?
 export function Button({ variant = "primary", className = "", ...rest }: ButtonProps) {
   const look =
     variant === "primary"
-      ? "bg-accent text-accent-ink disabled:opacity-40"
-      : "border border-line bg-surface text-ink disabled:opacity-40";
-  return <button type="button" className={`min-h-14 w-full rounded-xl px-5 text-base font-medium ${look} ${className}`} {...rest} />;
+      ? "bg-accent text-accent-ink shadow-[6px_6px_12px_var(--shadow-dark),-6px_-6px_12px_var(--shadow-light)] active:shadow-[inset_3px_3px_6px_rgb(0_0_0/0.35)] disabled:opacity-40"
+      : "raised text-ink disabled:opacity-40";
+  return <button type="button" className={`min-h-14 w-full rounded-full px-5 text-base font-medium ${look} ${className}`} {...rest} />;
 }
 
 export function Screen({ title, children, actions, eyebrow, flow = false }: { readonly title: string; readonly children: ReactNode; readonly actions?: ReactNode; /** Small mono label above the title, like "TODAY". */ readonly eyebrow?: string; /** Actions follow the content instead of sticking to the bottom (used where they would cover the main buttons). */ readonly flow?: boolean }) {
@@ -26,6 +26,6 @@ export function Screen({ title, children, actions, eyebrow, flow = false }: { re
 }
 
 export function Note({ tone = "info", children }: { readonly tone?: "info" | "warn"; readonly children: ReactNode }) {
-  const look = tone === "warn" ? "bg-warn-soft text-warn-ink" : "bg-accent-soft text-ink";
-  return <p className={`rounded-2xl p-4 text-[15px] leading-relaxed ${look}`}>{children}</p>;
+  const look = tone === "warn" ? "bg-warn-soft text-warn-ink" : "pressed text-ink";
+  return <p className={`rounded-3xl p-4 text-[15px] leading-relaxed ${look}`}>{children}</p>;
 }

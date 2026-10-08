@@ -14,14 +14,15 @@
     "smoke": "node --env-file=.env.local scripts/smoke.mjs"
   },
   "dependencies": {
+    "@fontsource/poppins": "^5.3.0",
     "@liftly/catalog": "workspace:*",
     "@liftly/engine": "workspace:*",
+    "@liftly/workout": "workspace:*",
     "@supabase/supabase-js": "^2.117.3",
     "dexie": "^4.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "workbox-window": "^7.4.1",
-    "@liftly/workout": "workspace:*"
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.16",

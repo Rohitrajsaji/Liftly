@@ -59,3 +59,4 @@ These are not decisions. Each is a named constant or a single function in `packa
 | Rest timer (M6) | Counts up from the last logged set; suggested rest compound 2–3 min, isolation 1.5–2 min, ramp 1–2 min. It is a guide and never blocks logging | PROGRAMS.md rest table |
 | Sign-in prompt (M6) | Workouts are saved on the phone with no account. A non-blocking note appears after the first set and on the summary; signing in uploads everything | DECISIONS C7 |
 | Pain follow-up (M6) | One day after a pain report the Today screen asks whether it is still there; the answer is saved as an event | SAFETY 24-hour rule |
+| Look (M6) | Soft neumorphic UI after Rohit's references (2026-10-08): grey surfaces, raised and pressed shapes, Poppins, orange accent only for the main action, selection text and progress. Safety messages keep a tinted background so they stand out | Rohit |

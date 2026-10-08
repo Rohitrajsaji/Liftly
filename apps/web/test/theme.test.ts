@@ -41,7 +41,8 @@ describe("theme contrast", () => {
   }
 
   it("is a light theme with no dark-mode override", () => {
-    expect(luminance(token("bg"))).toBeGreaterThan(0.9);
+    // Soft grey (neumorphic, Rohit 2026-10-08) is still a light background.
+    expect(luminance(token("bg"))).toBeGreaterThan(0.75);
     expect(luminance(token("ink"))).toBeLessThan(0.05);
     expect(css).not.toMatch(/prefers-color-scheme:\s*dark/);
   });

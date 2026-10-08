@@ -4,9 +4,9 @@
 export function Bar({ value, mark, accent }: { readonly value: number; readonly mark?: number; readonly accent: boolean }) {
   const pct = Math.round(Math.min(1, Math.max(0, value)) * 100);
   return (
-    <div aria-hidden="true" className="relative h-2 rounded-full bg-line">
+    <div aria-hidden="true" className="pressed relative h-3 rounded-full">
       <div className={`h-full rounded-full ${accent ? "bg-accent" : "bg-ink"}`} style={{ width: `${pct}%` }} />
-      {mark !== undefined && <div className="absolute top-[-3px] h-[14px] w-0.5 bg-ink/50" style={{ left: `${Math.round(mark * 100)}%` }} />}
+      {mark !== undefined && <div className="absolute top-[-3px] h-[18px] w-0.5 bg-ink/50" style={{ left: `${Math.round(mark * 100)}%` }} />}
     </div>
   );
 }
@@ -16,7 +16,7 @@ export function ProgressDots({ done, total }: { readonly done: number; readonly 
   return (
     <span aria-hidden="true" className="flex gap-1.5">
       {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={`size-2.5 rounded-full ${i < done ? "bg-accent" : "bg-line"}`} />
+        <span key={i} className={`size-3 rounded-full ${i < done ? "bg-accent" : "pressed"}`} />
       ))}
     </span>
   );

@@ -112,7 +112,7 @@ export function Exercise({
             </div>
           )}
           {step.kind !== "stopped" && (
-            <button type="button" onClick={onPain} data-report-pain className="min-h-14 w-full rounded-xl border border-line bg-warn-soft px-5 text-base font-medium text-warn-ink">
+            <button type="button" onClick={onPain} data-report-pain className="raised min-h-14 w-full rounded-full px-5 text-base font-medium text-warn-ink">
               Report pain
             </button>
           )}
@@ -166,7 +166,7 @@ export function Exercise({
                       onUpdate((s) => chooseWeight(s, index, g));
                       setPicking(false);
                     }}
-                    className={`min-h-12 rounded-full border px-4 text-base tabular-nums ${g === step.weightG ? "border-accent bg-accent-soft" : "border-line bg-surface"}`}
+                    className={`min-h-12 rounded-full px-4 text-base tabular-nums ${g === step.weightG ? "pressed font-medium text-accent" : "raised"}`}
                   >
                     {formatKg(g)}
                   </button>
@@ -198,14 +198,14 @@ export function Exercise({
         <>
           <section aria-label="Reps">
             <p className="eyebrow mb-2">Reps</p>
-            <div className="card flex items-center justify-between gap-4 p-3">
-              <button type="button" aria-label="One rep less" disabled={reps <= 0} onClick={() => setReps(reps - 1)} className="size-16 rounded-xl bg-bg text-2xl font-medium disabled:opacity-40">
+            <div className="pressed flex items-center justify-between gap-4 rounded-3xl p-3">
+              <button type="button" aria-label="One rep less" disabled={reps <= 0} onClick={() => setReps(reps - 1)} className="raised size-16 rounded-full text-2xl font-medium disabled:opacity-40">
                 −
               </button>
               <output aria-live="polite" className="text-5xl font-semibold tabular-nums" data-reps>
                 {reps}
               </output>
-              <button type="button" aria-label="One rep more" disabled={reps >= 100} onClick={() => setReps(reps + 1)} className="size-16 rounded-xl bg-bg text-2xl font-medium disabled:opacity-40">
+              <button type="button" aria-label="One rep more" disabled={reps >= 100} onClick={() => setReps(reps + 1)} className="raised size-16 rounded-full text-2xl font-medium disabled:opacity-40">
                 +
               </button>
             </div>
@@ -214,7 +214,7 @@ export function Exercise({
             <p className="eyebrow mb-2">How did it feel? Tap to log the set.</p>
             <div className="grid grid-cols-2 gap-2">
               {EFFORTS.map((e) => (
-                <button key={e} type="button" data-effort={e} onClick={() => log(e)} className="card min-h-20 px-3 py-2 text-left active:bg-accent-soft">
+                <button key={e} type="button" data-effort={e} onClick={() => log(e)} className="raised min-h-20 rounded-3xl px-4 py-2 text-left">
                   <span className="block text-lg font-medium">{EFFORT_LABEL[e]}</span>
                   <span className="block text-sm text-muted">{EFFORT_HELP[e]}</span>
                 </button>
@@ -229,7 +229,7 @@ export function Exercise({
 
       {er.sets.length > 0 && (
         <section aria-label="Logged sets">
-          <ol className="card divide-y divide-line" data-logged>
+          <ol className="pressed divide-y divide-line rounded-3xl px-1" data-logged>
             {er.sets.map((s, i) => (
               <li key={s.loggedAt + i} className="flex items-center justify-between px-4 py-3 text-base" data-logged-set>
                 <span className="tabular-nums">

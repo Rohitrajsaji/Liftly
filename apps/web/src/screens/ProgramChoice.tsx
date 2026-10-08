@@ -36,7 +36,7 @@ export function ProgramChoice({ initial, onBack, onDone }: { readonly initial: P
               role="radio"
               aria-checked={selected}
               onClick={() => setChoice(id)}
-              className={`min-h-24 rounded-2xl border p-4 text-left ${selected ? "border-accent border-2 bg-accent-soft" : "border-line bg-surface"}`}
+              className={`min-h-24 rounded-3xl p-5 text-left ${selected ? "pressed" : "raised"}`}
             >
               <span className="block text-lg font-semibold">{p.sessionsPerWeek} days a week</span>
               <span className="block text-base">{p.name}</span>

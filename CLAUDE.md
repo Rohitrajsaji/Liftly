@@ -41,7 +41,7 @@ Node 22 and pnpm 10. From the repository root:
 - Nothing is uploaded before an account exists (DECISIONS C7). Writes go to IndexedDB first; `src/sync.ts` uploads through an outbox with client-made ids so retries never duplicate (TESTING O-03). Screens and sync talk to the `Backend` interface (`src/backend.ts`), never to Supabase directly.
 - Supabase settings come from `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (see `apps/web/.env.example`, `SUPABASE_SETUP.md`). Both are public. Never use or commit the service_role key; account deletion is the `delete_my_account()` database function. Without them the app runs with no account features.
 - Database changes are new files in `supabase/migrations/`; `apps/web/test/rls.test.ts` runs them in an in-process Postgres and checks the privacy rules.
-- Theme: warm orange accent on light backgrounds with dark text, no dark mode (M4.1). Colours are tokens in `src/styles.css`; `test/theme.test.ts` enforces 4.5:1 contrast. Headings and card text are deliberately small and medium-weight; keep touch targets large instead.
+- Theme: soft neumorphic UI (Rohit, 2026-10-08): light grey surfaces lifted (`.raised`, `.card`) or pressed (`.pressed`) by a light and dark shadow, Poppins (self-hosted via @fontsource, so it works offline), orange accent, dark text, no dark mode. Colours are tokens in `src/styles.css`; `test/theme.test.ts` enforces 4.5:1 contrast. Headings and card text are deliberately small and medium-weight; keep touch targets large instead.
 - Controls are at least 48 px tall and the layout must not scroll sideways at phone width (`e2e/onboarding.spec.ts` checks both).
 
 ## How the spec is organized

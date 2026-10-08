@@ -163,12 +163,12 @@ export function App() {
         <span className="text-xl font-semibold tracking-tight">Liftly</span>
         <span className="flex items-center gap-2">
           {!online && (
-            <span role="status" className="rounded-full border border-line px-3 py-1 text-sm text-muted">
+            <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted">
               Offline
             </span>
           )}
           {session !== null && pending > 0 && (
-            <span role="status" className="rounded-full border border-line px-3 py-1 text-sm text-muted" data-sync-pending>
+            <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted" data-sync-pending>
               Waiting to sync
             </span>
           )}

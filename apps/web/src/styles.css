@@ -3,16 +3,17 @@
 /* Colour tokens: warm orange accent on light backgrounds with dark text (M4.1). Accent on white is 5.2:1,
    ink on bg 16:1, muted on bg 7:1 (UX §10, §11). */
 @theme {
-  --color-bg: #fffaf5;
-  --color-surface: #ffffff;
-  --color-ink: #1c1917;
-  --color-muted: #57534e;
-  --color-line: #e7d5c4;
-  --color-accent: #c2410c;
+  --color-bg: #e6e8ec;
+  --color-surface: #e6e8ec;
+  --color-ink: #25272b;
+  --color-muted: #565b63;
+  --color-line: #c9ccd2;
+  --color-accent: #b03a08;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #ffedd5;
-  --color-warn-soft: #fef3c7;
-  --color-warn-ink: #78350f;
+  --color-accent-soft: #f1dccc;
+  --color-warn-soft: #f1e2bd;
+  --color-warn-ink: #6b3a0c;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html {
@@ -25,7 +26,7 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--color-bg);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  font-family: var(--font-sans);
 }
 
 :focus-visible {
@@ -33,20 +34,42 @@ body {
   outline-offset: 2px;
 }
 
-/* Small section labels: plain sentence case, quiet. */
+/* Soft UI: every surface is the page colour, lifted or pressed by a light and a dark shadow. */
+:root {
+  --shadow-dark: #b9bdc5;
+  --shadow-light: #ffffff;
+}
+
 .eyebrow {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-muted);
 }
 
-/* Flat surfaces with a hairline border; no shadows. */
+/* Raised: sits above the page. */
+.raised {
+  background: var(--color-bg);
+  box-shadow: 7px 7px 14px var(--shadow-dark), -7px -7px 14px var(--shadow-light);
+}
+/* Pressed: sunk into the page (selected items, fields, tracks). */
+.pressed {
+  background: var(--color-bg);
+  box-shadow: inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
+}
+button.raised:active:not(:disabled),
+button.press:active:not(:disabled) {
+  box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+}
+button:disabled.raised {
+  box-shadow: none;
+}
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 1rem;
+  background: var(--color-bg);
+  border-radius: 1.75rem;
+  box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
 }
 .card-accent {
+  border-radius: 1.25rem;
   background: var(--color-accent-soft);
-  border-radius: 0.75rem;
+  box-shadow: inset 3px 3px 6px #d9bfa9, inset -3px -3px 6px #fff4ea;
 }

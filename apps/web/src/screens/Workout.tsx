@@ -58,7 +58,7 @@ export function Workout({
         <span className="text-base text-muted">{session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} of {session.exercises.length} done</span>
         <ProgressDots done={session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} total={session.exercises.length} />
       </div>
-      <ol className="card divide-y divide-line overflow-hidden" aria-label="Exercises" data-session-list>
+      <ol className="flex flex-col gap-4" aria-label="Exercises" data-session-list>
         {session.exercises.map((er, i) => (
           <li key={er.slotOrder}>
             <button
@@ -66,7 +66,7 @@ export function Workout({
               onClick={() => onOpen(i)}
               data-exercise-row
               data-status={er.status}
-              className={`flex min-h-16 w-full items-center justify-between gap-3 border-l-4 p-4 text-left ${i === nextIndex ? "border-accent bg-accent-soft" : "border-transparent"}`}
+              className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-3xl p-5 text-left ${i === nextIndex ? "pressed" : "raised"}`}
             >
               <span>
                 <span className="block text-base font-medium">{exerciseName(er.exerciseId)}</span>

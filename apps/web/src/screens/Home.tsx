@@ -57,7 +57,7 @@ export function Home({
       }
     >
       {follow !== undefined && (
-        <section className="rounded-2xl border border-line bg-warn-soft p-4 text-warn-ink shadow-sm" data-follow-up aria-label="Pain check-in">
+        <section className="rounded-3xl bg-warn-soft p-4 text-warn-ink shadow-[inset_3px_3px_6px_#d6c595,inset_-3px_-3px_6px_#fff6d6]" data-follow-up aria-label="Pain check-in">
           <p className="text-base font-medium">{FOLLOW_UP_QUESTION}</p>
           <p className="mt-1 text-sm">{exerciseName(follow.exerciseId)}. It's a quick check so Liftly knows when it is safe to progress again.</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -84,9 +84,9 @@ export function Home({
       )}
       {planError !== null && !missingGym && <Note tone="warn">{planError}</Note>}
       {plan !== null && (
-        <ol className="card divide-y divide-line" aria-label="Today's exercises" data-plan>
+        <ol className="flex flex-col gap-4" aria-label="Today's exercises" data-plan>
           {plan.map((p) => (
-            <li key={p.slotOrder} className="p-4" data-exercise-row>
+            <li key={p.slotOrder} className="card p-5" data-exercise-row>
               <PlannedRow p={p} />
             </li>
           ))}

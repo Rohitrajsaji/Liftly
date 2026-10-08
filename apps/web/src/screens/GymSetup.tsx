@@ -67,7 +67,7 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
                   <h2 className="text-lg font-semibold">{EQUIPMENT_LABEL[k]}</h2>
                   <p className="text-sm text-muted">{EQUIPMENT_HELP[k]}</p>
                 </div>
-                <button type="button" onClick={() => setTarget({ kind: "equipment", equipment: k })} className="min-h-12 shrink-0 rounded-xl border border-line px-4 text-base font-medium text-accent">
+                <button type="button" onClick={() => setTarget({ kind: "equipment", equipment: k })} className="raised min-h-12 shrink-0 rounded-full px-5 text-base font-medium text-accent">
                   {list.length > 0 ? "Edit" : "Add"}
                 </button>
               </div>
@@ -78,7 +78,7 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
           );
         })}
       </ul>
-      <details className="rounded-2xl border border-line bg-surface p-4">
+      <details className="card p-4">
         <summary className="min-h-12 cursor-pointer text-base font-medium">Different weights for one exercise</summary>
         <ul className="mt-2 divide-y divide-line">
           {kinds.flatMap((k) =>
@@ -138,7 +138,7 @@ function LadderEditor({ title, equipment, initial, onSave, onCancel }: { readonl
       setBusy(false);
     }
   };
-  const input = "min-h-14 w-full rounded-xl border border-line bg-surface px-4 text-base";
+  const input = "pressed min-h-14 w-full rounded-2xl px-4 text-base";
   return (
     <Screen
       title={title}
@@ -157,13 +157,13 @@ function LadderEditor({ title, equipment, initial, onSave, onCancel }: { readonl
         {loads.length === 0 && <li className="text-base text-muted">No weights yet.</li>}
         {loads.map((g) => (
           <li key={g}>
-            <button type="button" aria-label={`Remove ${formatKg(g)} kg`} onClick={() => setLoads(loads.filter((x) => x !== g))} className="min-h-12 rounded-full border border-line bg-surface px-4 text-base tabular-nums">
+            <button type="button" aria-label={`Remove ${formatKg(g)} kg`} onClick={() => setLoads(loads.filter((x) => x !== g))} className="raised min-h-12 rounded-full px-4 text-base tabular-nums">
               {formatKg(g)} kg ×
             </button>
           </li>
         ))}
       </ul>
-      <fieldset className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
+      <fieldset className="card flex flex-col gap-2 p-4">
         <legend className="px-1 text-base font-medium">Add a range</legend>
         <p className="text-sm text-muted">For a stack that goes 5, 10, 15 … 60: start 5, end 60, step 5.</p>
         <div className="grid grid-cols-3 gap-2">
@@ -184,7 +184,7 @@ function LadderEditor({ title, equipment, initial, onSave, onCancel }: { readonl
           Add range
         </Button>
       </fieldset>
-      <fieldset className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
+      <fieldset className="card flex flex-col gap-2 p-4">
         <legend className="px-1 text-base font-medium">Add one weight</legend>
         <label className="text-sm text-muted">
           Weight (kg)

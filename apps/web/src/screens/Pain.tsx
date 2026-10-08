@@ -10,7 +10,7 @@ export function PainReport({ exerciseName, onCancel, onSubmit }: { readonly exer
   const [rest, setRest] = useState<boolean | null>(null);
   const [odd, setOdd] = useState<boolean | null>(null);
   const ready = location !== null && severity !== null && rest !== null && odd !== null;
-  const pill = (on: boolean) => `min-h-14 rounded-xl border px-3 text-base ${on ? "border-accent bg-accent-soft font-medium" : "border-line bg-surface"}`;
+  const pill = (on: boolean) => `min-h-14 rounded-full px-3 text-base ${on ? "pressed font-medium text-accent" : "raised"}`;
   return (
     <Screen
       title="Report pain"

@@ -20,7 +20,7 @@ export function explain(e: unknown): string {
 
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const field = "min-h-14 w-full rounded-xl border border-line bg-surface px-4 text-base text-ink";
+const field = "pressed min-h-14 w-full rounded-2xl px-4 text-base text-ink";
 
 export function EmailStep({ onBack, onSend }: { readonly onBack: () => void; readonly onSend: (email: string) => Promise<void> }) {
   const [email, setEmail] = useState("");
