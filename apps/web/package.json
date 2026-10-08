@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "e2e": "vite build --mode e2e && playwright test",
-    "build:e2e": "vite build --mode e2e"
+    "build:e2e": "vite build --mode e2e",
+    "smoke": "node --env-file=.env.local scripts/smoke.mjs"
   },
   "dependencies": {
     "@liftly/catalog": "workspace:*",
