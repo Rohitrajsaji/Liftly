@@ -16,6 +16,15 @@ const check = (name, ok, detail = "") => {
 };
 const fresh = () => createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
+// Reachability first: a blocked network must never read as a pass.
+const probe = await fetch(`${url}/rest/v1/`, { headers: { apikey: key } }).catch((e) => e);
+const reachable = probe instanceof Response && /json/.test(probe.headers.get("content-type") ?? "") && probe.status < 500;
+check("Supabase project is reachable from here", reachable, probe instanceof Response ? `HTTP ${probe.status} ${probe.headers.get("content-type")}` : String(probe));
+if (!reachable) {
+  console.log("\nFAILED: cannot reach the project, so nothing was verified.");
+  process.exit(1);
+}
+
 // Part 1: signed out.
 const anon = fresh();
 for (const table of ["profiles", "consents", "events", "ladders"]) {
