@@ -7,7 +7,7 @@ Liftly is a workout app for gym beginners. It tells you what to lift next, and w
 - **Progression Engine v1.0:** frozen.
 - **Phase 0 (manual testing with 3–5 beginners):** ready to run once gym load ladders are recorded.
 - **Architecture and tech stack:** approved 2026-10-07 (TypeScript monorepo, React + Vite PWA, Supabase, progression engine as a pure package). See the architecture plan linked in DECISIONS.md.
-- **Code:** progression engine in `packages/engine`. See CLAUDE.md for commands.
+- **Code:** progression engine in `packages/engine`; frozen programs and exercise library in `packages/catalog`. See CLAUDE.md for commands.
 - **Programs:** frozen 3-day and 4-day programs in PROGRAMS.md.
 
 ## Document map
@@ -27,6 +27,8 @@ Liftly is a workout app for gym beginners. It tells you what to lift next, and w
 | [FUTURE.md](FUTURE.md) | Postponed features and when to revisit them |
 | [PROGRAMS.md](PROGRAMS.md) | Frozen 3-day and 4-day V1 programs (source of truth) |
 | [DECISIONS.md](DECISIONS.md) | Resolved contradictions and the defaults the code uses for open items |
+| [ENGINE_QUESTIONS.md](ENGINE_QUESTIONS.md) | Engine spec questions raised by failing tests, and their resolutions |
+| [PROGRAMS_QUESTIONS.md](PROGRAMS_QUESTIONS.md) | Gaps in PROGRAMS.md found while building the program catalog |
 
 ## Recommended reading order
 

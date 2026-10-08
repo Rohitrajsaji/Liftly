@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine, `packages/engine`, a zero-dependency TypeScript package. No app, database or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
+Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). No app, database or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
 
 Fixed platform decisions: installable web app (PWA), kg only, India market, offline logging.
 
@@ -24,6 +24,7 @@ Node 22 and pnpm 10. From the repository root:
 - `packages/engine/src` imports nothing outside itself and never reads the clock, randomness, network, storage or Claude (`test/purity.test.ts` enforces this).
 - Loads are integer grams everywhere inside the engine; factors are per-mille (`900` = 0.90). Convert kg only at the app's edges (`kgToG`).
 - Defaults for [OPEN]/[ASSUMPTION] items live in `src/assumptions.ts` or in the one function marked "(default)", and are listed in `DECISIONS.md` section 2.
+- `packages/catalog` is checked field by field against PROGRAMS.md (`test/programs.test.ts`). Change PROGRAMS.md first, never only the catalog. Swap-only exercises with unknown class are `null` until supplied (PROGRAMS_QUESTIONS.md).
 - Every TESTING.md scenario has a test whose name starts with its ID (`test/coverage.test.ts` enforces this). Never edit an expected value to make code pass: record the conflict in `ENGINE_QUESTIONS.md` and leave the test red.
 
 ## How the spec is organized

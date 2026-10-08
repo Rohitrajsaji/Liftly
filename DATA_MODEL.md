@@ -45,7 +45,7 @@ Field names are conceptual. Types and formats are chosen during architecture.
 | rep_bottom | 8 (compound) or 10 (isolation) |
 | rep_top | 12 (compound) or 15 (isolation) |
 | ladder_id | Gym-specific |
-| swap_id | Approved alternative (one per exercise) |
+| swap_id | Approved alternative: one per exercise within a program, from PROGRAMS.md. The same exercise can have a different swap in the other program (PROGRAMS_QUESTIONS.md) |
 | first_session_date | Set on first logged session |
 
 ### Program and workout slot
