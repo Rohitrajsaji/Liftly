@@ -2,15 +2,24 @@ import type { ProgramId } from "@liftly/catalog";
 import { EQUIPMENT_LABEL, planPreview } from "../plan";
 import { Button, Note, Screen } from "../ui";
 
-export function Preview({ programId, onChangeProgram }: { readonly programId: ProgramId; readonly onChangeProgram: () => void }) {
+export interface PreviewAccount {
+  readonly signedIn: boolean;
+  readonly onCreate: () => void;
+}
+
+/** `account` is null when the app has no server configured; the preview then makes no mention of accounts. */
+export function Preview({ programId, onChangeProgram, account }: { readonly programId: ProgramId; readonly onChangeProgram: () => void; readonly account: PreviewAccount | null }) {
   const plan = planPreview(programId);
   return (
     <Screen
       title="Your plan"
       actions={
-        <Button variant="secondary" onClick={onChangeProgram}>
-          Change program
-        </Button>
+        <>
+          {account !== null && !account.signedIn && <Button onClick={account.onCreate}>Create account to save your plan</Button>}
+          <Button variant="secondary" onClick={onChangeProgram}>
+            Change program
+          </Button>
+        </>
       }
     >
       <div>
@@ -46,7 +55,8 @@ export function Preview({ programId, onChangeProgram }: { readonly programId: Pr
         ))}
       </ol>
       <p className="text-sm text-muted">"3 × 8–12" means 3 sets of 8 to 12 reps.</p>
-      <Note>Next, you'll create an account so your workouts are saved. Account sign-in arrives in the next update; your answers are kept on this phone.</Note>
+      {account?.signedIn === true && <Note>Your plan is saved to your account.</Note>}
+      {account !== null && !account.signedIn && <Note>Create an account to save your plan and your workouts. You can look around first.</Note>}
     </Screen>
   );
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). The web app (`apps/web`, React + Vite PWA) has onboarding and the plan preview, stored on the device in IndexedDB (Dexie) and working offline. No accounts, server database or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
+Architecture approved 2026-10-07 (plan and resolved contradictions in `DECISIONS.md`). Code so far: the progression engine (`packages/engine`, zero dependencies) and the program catalog (`packages/catalog`: frozen programs, exercise library, swaps, slot sequence). The web app (`apps/web`, React + Vite PWA) has onboarding, the plan preview, email-code sign-in, consent, an upload outbox and account deletion, working offline; answers live on the device in IndexedDB (Dexie) and sync to Supabase (`supabase/migrations`). No workout logging or Claude integration yet. Spec documents stay at the repository root (not moved to `docs/`).
 
 Fixed platform decisions: installable web app (PWA), kg only, India market, offline logging.
 
@@ -16,7 +16,7 @@ Node 22 and pnpm 10. From the repository root:
 - `pnpm check`: typecheck and all tests
 - `pnpm test` / `pnpm typecheck`
 - `pnpm build`: production build of the web app; `pnpm --filter @liftly/web dev` to run it locally
-- `pnpm e2e`: builds the web app and runs the Playwright browser tests (offline checks included) against `vite preview`. Use the preinstalled Chromium; never run `playwright install` in this environment.
+- `pnpm e2e`: builds the web app in `--mode e2e` (fake Supabase address from `apps/web/.env.e2e`) and runs the Playwright browser tests (offline and account flows included) against `vite preview`. A fake Supabase in `e2e/support/fakeSupabase.ts` answers the app's requests. Use the preinstalled Chromium; never run `playwright install` in this environment.
 - One test file: `pnpm --filter @liftly/engine exec vitest run test/scenarios/stall.test.ts`
 - One scenario by ID: `pnpm --filter @liftly/engine exec vitest run -t "S-04"`
 - Tests resting on an open item: `pnpm --filter @liftly/engine exec vitest run -t "OPEN|ASSUMPTION|SPEC QUESTION"`
@@ -32,7 +32,9 @@ Node 22 and pnpm 10. From the repository root:
 ## Web app rules
 
 - `apps/web` shows only what `@liftly/catalog` and `@liftly/engine` give it. It never computes weights, reps or sets itself.
-- Nothing is uploaded before an account exists (DECISIONS C7); until M5 lands everything stays in IndexedDB on the device.
+- Nothing is uploaded before an account exists (DECISIONS C7). Writes go to IndexedDB first; `src/sync.ts` uploads through an outbox with client-made ids so retries never duplicate (TESTING O-03). Screens and sync talk to the `Backend` interface (`src/backend.ts`), never to Supabase directly.
+- Supabase settings come from `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (see `apps/web/.env.example`, `SUPABASE_SETUP.md`). Both are public. Never use or commit the service_role key; account deletion is the `delete_my_account()` database function. Without them the app runs with no account features.
+- Database changes are new files in `supabase/migrations/`; `apps/web/test/rls.test.ts` runs them in an in-process Postgres and checks the privacy rules.
 - Theme: warm orange accent on light backgrounds with dark text, no dark mode (M4.1). Colours are tokens in `src/styles.css`; `test/theme.test.ts` enforces 4.5:1 contrast. Headings and card text are deliberately small and medium-weight; keep touch targets large instead.
 - Controls are at least 48 px tall and the layout must not scroll sideways at phone width (`e2e/onboarding.spec.ts` checks both).
 

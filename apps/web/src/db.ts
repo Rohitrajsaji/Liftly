@@ -1,5 +1,5 @@
-// Local database (IndexedDB via Dexie). Everything in M4 stays on the device: nothing is uploaded
-// before an account exists (DECISIONS C7). Accounts and the sync outbox arrive in M5.
+// Local database (IndexedDB via Dexie). Onboarding answers and the upload outbox live here. Nothing is added to the
+// outbox before an account exists (DECISIONS C7); at sign-in the local answers are queued and uploaded.
 
 import Dexie, { type EntityTable } from "dexie";
 import { NEW_PROFILE, normalize, type Profile } from "./onboarding";
@@ -9,18 +9,50 @@ interface ProfileRow extends Profile {
   readonly updatedAt: string;
 }
 
+/** A consent the user accepted on this device before an account existed. It is queued for upload at sign-in. */
+export interface LocalConsent {
+  readonly id: string;
+  readonly version: string;
+  readonly acceptedAt: string;
+}
+
+/** One pending upload (the outbox). Nothing is added before an account exists (DECISIONS C7). */
+export interface OutboxItem {
+  readonly id: string;
+  readonly userId: string;
+  readonly table: "profiles" | "consents";
+  readonly row: Record<string, unknown>;
+  readonly createdAt: string;
+}
+
 export class LiftlyDb extends Dexie {
   profile!: EntityTable<ProfileRow, "id">;
+  consent!: EntityTable<LocalConsent, "id">;
+  outbox!: EntityTable<OutboxItem, "id">;
 
   constructor(name = "liftly") {
     super(name);
     this.version(1).stores({ profile: "id" });
+    this.version(2).stores({ profile: "id", consent: "id", outbox: "id, userId, createdAt" });
   }
 }
 
 export async function loadProfile(db: LiftlyDb): Promise<Profile> {
   const row = await db.profile.get("me");
   return row === undefined ? NEW_PROFILE : normalize(row);
+}
+
+/** The saved profile with the time it last changed, or null when nothing has been saved. */
+export async function loadStoredProfile(db: LiftlyDb): Promise<{ readonly profile: Profile; readonly updatedAt: string } | null> {
+  const row = await db.profile.get("me");
+  return row === undefined ? null : { profile: normalize(row), updatedAt: row.updatedAt };
+}
+
+/** Erases everything stored on this device (used when an account is deleted). */
+export async function wipeLocalData(db: LiftlyDb): Promise<void> {
+  await db.transaction("rw", db.profile, db.consent, db.outbox, async () => {
+    await Promise.all([db.profile.clear(), db.consent.clear(), db.outbox.clear()]);
+  });
 }
 
 export async function saveProfile(db: LiftlyDb, p: Profile, now: Date = new Date()): Promise<void> {

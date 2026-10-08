@@ -13,9 +13,11 @@ export interface Profile {
   /** DATA_MODEL User.months_training. */
   readonly monthsTraining: number | null;
   readonly programId: ProgramId | null;
+  /** DATA_MODEL User.start_date, YYYY-MM-DD in the user's local time. Set when the plan is first shown. */
+  readonly startDate: string | null;
 }
 
-export const NEW_PROFILE: Profile = { step: "welcome", monthsTraining: null, programId: null };
+export const NEW_PROFILE: Profile = { step: "welcome", monthsTraining: null, programId: null, startDate: null };
 
 /** The stepper's range. Liftly is built for 0 to 12 months (MVP_SCOPE); higher values are kept as entered. */
 export const MONTHS_MIN = 0;
@@ -76,9 +78,25 @@ export function changeProgram(p: Profile): Profile {
 export function normalize(p: Partial<Profile> | undefined): Profile {
   const months = typeof p?.monthsTraining === "number" ? clampMonths(p.monthsTraining) : null;
   const programId = p?.programId === "3-day" || p?.programId === "4-day" ? p.programId : null;
-  const base: Profile = { step: "welcome", monthsTraining: months, programId };
+  const startDate = typeof p?.startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.startDate) ? p.startDate : null;
+  const base: Profile = { step: "welcome", monthsTraining: months, programId, startDate };
   // "goal" was a step in M4; profiles saved then continue to the preview.
   const stored: string | undefined = p?.step;
   const step: Step = stored === "goal" ? "preview" : STEPS.find((s) => s === stored) ?? "welcome";
   return goTo(base, step);
+}
+
+export function localDate(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** Records the start date the first time the plan is shown. */
+export function stampStartDate(p: Profile, now: Date): Profile {
+  return p.step === "preview" && p.startDate === null ? { ...p, startDate: localDate(now) } : p;
+}
+
+/** All answers given: this is what an account stores. */
+export function isOnboarded(p: Profile): boolean {
+  return p.monthsTraining !== null && p.programId !== null && p.startDate !== null;
 }

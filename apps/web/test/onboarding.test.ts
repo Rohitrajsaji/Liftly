@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { back, changeProgram, clampMonths, furthestAllowed, goTo, isBeyondBeginnerRange, NEW_PROFILE, next, normalize, type Profile } from "../src/onboarding";
+import { isOnboarded, localDate, stampStartDate, back, changeProgram, clampMonths, furthestAllowed, goTo, isBeyondBeginnerRange, NEW_PROFILE, next, normalize, type Profile } from "../src/onboarding";
 
-const done: Profile = { step: "preview", monthsTraining: 4, programId: "3-day" };
+const done: Profile = { step: "preview", monthsTraining: 4, programId: "3-day", startDate: "2026-10-08" };
 
 describe("onboarding steps (PRD F1)", () => {
   it("runs welcome → experience → program → preview (no goal step)", () => {
@@ -9,7 +9,7 @@ describe("onboarding steps (PRD F1)", () => {
     expect(p.step).toBe("experience");
     p = next({ ...p, monthsTraining: 0 });
     expect(p.step).toBe("program");
-    p = next({ ...p, programId: "4-day" });
+    p = next({ ...p, programId: "4-day", startDate: "2026-10-08" });
     expect(p.step).toBe("preview");
   });
 
@@ -45,9 +45,24 @@ describe("onboarding steps (PRD F1)", () => {
     expect(normalize(undefined)).toEqual(NEW_PROFILE);
     expect(normalize({ step: "preview", monthsTraining: 3, programId: null }).step).toBe("program");
     // A profile saved by M4, when "goal" was a step, goes straight to the preview.
-    expect(normalize({ step: "goal" as never, monthsTraining: 3, programId: "3-day", goalConfirmed: true } as never)).toEqual({ step: "preview", monthsTraining: 3, programId: "3-day" });
+    expect(normalize({ step: "goal" as never, monthsTraining: 3, programId: "3-day", goalConfirmed: true } as never)).toEqual({ step: "preview", monthsTraining: 3, programId: "3-day", startDate: null });
     expect(normalize({ ...done, programId: "5-day" as never }).step).toBe("program");
     expect(normalize({ ...done, step: "nope" as never }).step).toBe("welcome");
     expect(normalize(done)).toEqual(done);
+  });
+
+  it("the start date is set once, the first time the plan is shown, in local time", () => {
+    const before: Profile = { step: "program", monthsTraining: 2, programId: "3-day", startDate: null };
+    expect(stampStartDate(before, new Date(2026, 9, 8, 23, 59))).toBe(before);
+    const shown = stampStartDate({ ...before, step: "preview" }, new Date(2026, 9, 8, 23, 59));
+    expect(shown.startDate).toBe("2026-10-08");
+    expect(stampStartDate(shown, new Date(2026, 10, 1)).startDate).toBe("2026-10-08");
+    expect(localDate(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+
+  it("a profile is onboarded only with months, program and start date", () => {
+    expect(isOnboarded(done)).toBe(true);
+    expect(isOnboarded({ ...done, startDate: null })).toBe(false);
+    expect(isOnboarded(NEW_PROFILE)).toBe(false);
   });
 });
