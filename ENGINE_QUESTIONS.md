@@ -2,7 +2,7 @@
 
 Per TESTING.md §12, a failing scenario is a spec question, not a code fix. Each question below has a red test that stays red until the spec owner decides. The expected values in the tests are copied from TESTING.md and are not edited to make the code pass.
 
-## Q1. Deload after a jump: which weight does 0.90 × W use? (open, raised 2026-10-07)
+## Q1. Deload after a jump: which weight does 0.90 × W use? (resolved 2026-10-08)
 
 **Failing tests:** L-03, L-05.
 
@@ -19,3 +19,5 @@ W-05 uses the other reading: after a 16 → 18 kg jump, it expects 0.90 × 18 = 
 **Options.**
 1. **Recommended:** keep §5 as written (W = weight just lifted) and correct L-03 and L-05 to expect 8 kg ("highest step ≤ 9.0 → 8 kg"). No engine change.
 2. Change the rule so a deload on a first exposure after an increase is calculated from the pre-increase weight. That is a rule change, needs a new numbered engine version, and would also change W-05's expected value (0.90 × 16 = 14.4 → 14 kg).
+
+**Resolution (Rohit, 2026-10-08): option 1.** The engine rule is unchanged: W is the weight just lifted, and the deload is the highest step on that exercise's real ladder at or below 0.90 × W. L-03 and L-05 were corrected in TESTING.md to 8 kg (dumbbell ladder 6, 8, 10 kg: 0.90 × 10 = 9.0 → 8 kg). L-09 was added for a 2.5 kg ladder (5, 7.5, 10 kg: 0.90 × 10 = 9.0 → 7.5 kg).

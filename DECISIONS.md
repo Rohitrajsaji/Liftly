@@ -4,7 +4,7 @@ Decisions that close contradictions between the spec documents, and the defaults
 
 Architecture plan (approved 2026-10-07): https://claude.ai/code/artifact/2123b995-f957-49d9-99cf-1100086aad6a
 
-## 1. Resolved contradictions (approved by Rohit, 2026-10-07)
+## 1. Resolved contradictions (approved by Rohit, 2026-10-07 and 2026-10-08)
 
 | # | Topic | Decision | Docs updated |
 |---|---|---|---|
@@ -16,6 +16,7 @@ Architecture plan (approved 2026-10-07): https://claude.ai/code/artifact/2123b99
 | C6 | "Decision happens at the next session" | The engine runs after the session on the sets actually logged. The new weight is first used at the next session. | PROGRESSION_ENGINE §10 |
 | C7 | First save without an account, offline | The in-progress workout stays on the device, unsynced, and attaches to the account when sign-in succeeds. Nothing is uploaded before the account exists. | PRD AC-2 |
 | C8 | Calibration flag | Calibration is recorded per exercise (decision type, ramp sets). The session flag is derived. | DATA_MODEL |
+| Q1 | Deload after a weight increase (TESTING L-03, L-05) | Engine rule unchanged: 0.90 × the weight just lifted, then the highest step at or below it on that exercise's real ladder. L-03 and L-05 corrected to 8 kg; L-09 added for a 5, 7.5, 10 kg ladder (→ 7.5 kg). Decided 2026-10-08. | TESTING L-03, L-05, L-09; ENGINE_QUESTIONS Q1 |
 
 ## 2. Defaults used by the code for open items (not decided)
 

@@ -18,11 +18,11 @@ describe("TESTING.md section 8: large increments", () => {
     expect(d?.ruleRow).toBe(6);
     expect(d?.nextTargetReps).toBe(8);
   });
-  it("L-03 [SPEC QUESTION Q1]: DB bench 8 -> 10, sets 5,5,5 -> three misses, row 2, highest step <= 7.2 -> 6 kg, target 8", () => {
+  it("L-03 (Q1): DB bench 8 -> 10, sets 5,5,5 -> three misses, row 2, highest step <= 9.0 -> 8 kg, target 8", () => {
     const d = decideNext(input({ ladderG: DUMBBELL_LADDER, workingWeightG: kg(10), firstExposure: true, sets: sets([5, 5, 5]) }));
     expect(d?.misses).toBe(3);
     expect(d?.ruleRow).toBe(2);
-    expect(d?.nextG).toBe(kg(6));
+    expect(d?.nextG).toBe(kg(8));
     expect(d?.nextTargetReps).toBe(8);
   });
   it("L-04: lateral raise 8 -> 10, floor 8; 9,8,8 -> no misses, row 6, target 10", () => {
@@ -31,11 +31,11 @@ describe("TESTING.md section 8: large increments", () => {
     expect(d?.ruleRow).toBe(6);
     expect(d?.nextTargetReps).toBe(10);
   });
-  it("L-05 [SPEC QUESTION Q1]: lateral raise 8 -> 10, 9,7,7 -> two misses below floor 8, row 2, highest step <= 7.2 -> 6 kg", () => {
+  it("L-05 (Q1): lateral raise 8 -> 10, 9,7,7 -> two misses below floor 8, row 2, highest step <= 9.0 -> 8 kg", () => {
     const d = decideNext(iso({ workingWeightG: kg(10), firstExposure: true, sets: sets([9, 7, 7]) }));
     expect(d?.misses).toBe(2);
     expect(d?.ruleRow).toBe(2);
-    expect(d?.nextG).toBe(kg(6));
+    expect(d?.nextG).toBe(kg(8));
   });
   it("L-06: machine with 5 kg steps, 40 -> 45 (+12.5%) -> jump; 45 kg taken; floor 6", () => {
     const machine = kgs(30, 35, 40, 45, 50, 55);
@@ -50,6 +50,12 @@ describe("TESTING.md section 8: large increments", () => {
     const d = decideNext(input({ ladderG: gappy, workingWeightG: kg(8), sets: sets([12, 12, 12]) }));
     expect(d?.nextG).toBe(kg(12));
     expect(gappy).toContain(d?.nextG);
+  });
+  it("L-09 (Q1): deload from 10 kg on a 5, 7.5, 10 kg ladder -> highest step <= 9.0 -> 7.5 kg", () => {
+    const d = decideNext(input({ ladderG: kgs(5, 7.5, 10), workingWeightG: kg(10), firstExposure: true, sets: sets([5, 5, 5]) }));
+    expect(d?.ruleRow).toBe(2);
+    expect(d?.nextG).toBe(kg(7.5));
+    expect(d?.nextTargetReps).toBe(8);
   });
   it("L-08 [ASSUMPTION default]: requested step beyond the top of the ladder -> keep W, ladderEdge flag", () => {
     const d = decideNext(input({ ladderG: kgs(12, 14, 16), workingWeightG: kg(16), sets: sets([12, 12, 12]) }));

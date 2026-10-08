@@ -111,12 +111,13 @@ Interpretation used (PROGRESSION_ENGINE.md section 7): compare the current sessi
 |---|---|---|
 | L-01 | Dumbbell bench 16 → 18 kg (+12.5%), jump flag | First exposure, floor 6. Sets 7, 6, 6: no misses. Row 6: target max(8, 6 + 1) = 8. |
 | L-02 | Dumbbell bench 8 → 10 kg (+25%), jump flag | First exposure, floor 6. Sets 6, 6, 5: one miss (5). Row 6, target 8. |
-| L-03 | Dumbbell bench 8 → 10 kg, sets 5, 5, 5 | Three misses. Row 2: highest step ≤ 7.2 → 6 kg, target 8. |
+| L-03 | Dumbbell bench 8 → 10 kg, sets 5, 5, 5 | Three misses. Row 2: 0.90 × 10 = 9.0, highest step ≤ 9.0 on the dumbbell ladder → 8 kg, target 8. (Corrected 2026-10-08, ENGINE_QUESTIONS.md Q1.) |
 | L-04 | Isolation lateral raise 8 → 10 kg (+25%), floor 8 | Sets 9, 8, 8: no misses. Row 6, target 10. |
-| L-05 | Isolation lateral raise 8 → 10 kg, sets 9, 7, 7 | Two misses (7 is below floor 8). Row 2: highest step ≤ 7.2 → 6 kg. |
+| L-05 | Isolation lateral raise 8 → 10 kg, sets 9, 7, 7 | Two misses (7 is below floor 8). Row 2: 0.90 × 10 = 9.0, highest step ≤ 9.0 on the dumbbell ladder → 8 kg. (Corrected 2026-10-08, ENGINE_QUESTIONS.md Q1.) |
 | L-06 | Machine with 5 kg steps: 40 → 45 kg (+12.5%) | Jump flag set. No finer step available, so 45 kg is taken with floor 6. |
 | L-07 | Ladder missing an intermediate step | Engine uses the next available step only. Never computes an off-ladder weight. |
 | L-08 | Requested step doesn't exist (top of the ladder) | Keep W. [ASSUMPTION: log code for this case; not defined in v1.0] |
+| L-09 | Deload from 10 kg on a 2.5 kg ladder (5, 7.5, 10 kg) | 0.90 × 10 = 9.0. Highest step ≤ 9.0 → 7.5 kg. The result depends on the exercise's real ladder, never a computed 9 kg. |
 
 ## 9. Reason codes
 
