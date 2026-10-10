@@ -32,8 +32,8 @@ class FakeServer implements Backend {
     }
   }
   async getSession() { return this.user; }
-  async sendCode() { this.check(); }
-  async verifyCode() { this.check(); return this.user; }
+  async signUp() { this.check(); return this.user; }
+  async signIn() { this.check(); return this.user; }
   async signOut() {}
   async deleteAccount() {
     this.check();

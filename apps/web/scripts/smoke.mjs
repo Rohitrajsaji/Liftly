@@ -1,9 +1,8 @@
 // Smoke test against a real Supabase project: pnpm --filter @liftly/web smoke
 // Reads VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY from .env.local. Uses only the publishable key.
-// Part 1 needs no sign-in. Part 2 (optional) signs in two test emails with real codes: pass SMOKE_EMAIL_A and
-// SMOKE_EMAIL_B. It creates and then deletes its own test accounts.
+// Part 1 needs no sign-in. Part 2 (optional) creates two test accounts with a password: pass SMOKE_EMAIL_A and
+// SMOKE_EMAIL_B (any addresses; no inbox needed when "Confirm email" is off). It deletes its own test accounts.
 import { createClient } from "@supabase/supabase-js";
-import { createInterface } from "node:readline/promises";
 
 const url = process.env.VITE_SUPABASE_URL;
 const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -45,15 +44,12 @@ check("delete_my_account: refused when signed out", del.error !== null);
 const emailA = process.env.SMOKE_EMAIL_A;
 const emailB = process.env.SMOKE_EMAIL_B;
 if (emailA && emailB) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const password = `smoke-${crypto.randomUUID()}`;
   const signIn = async (email) => {
     const c = fresh();
-    const sent = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-    check(`${email}: code sent`, sent.error === null, sent.error?.message);
-    const code = (await rl.question(`Code emailed to ${email}: `)).trim();
-    const v = await c.auth.verifyOtp({ email, token: code, type: "email" });
-    check(`${email}: signed in with the code`, v.error === null && v.data.user !== null, v.error?.message);
-    return { c, id: v.data.user?.id };
+    const made = await c.auth.signUp({ email, password });
+    check(`${email}: account created and signed in`, made.error === null && made.data.session !== null, made.error?.message ?? "no session: is Confirm email still on?");
+    return { c, id: made.data.user?.id };
   };
   const a = await signIn(emailA);
   const b = await signIn(emailB);
@@ -81,9 +77,8 @@ if (emailA && emailB) {
   check("A: still has their profile after B was deleted", ((await a.c.from("profiles").select("*")).data ?? []).length === 1);
   const delA = await a.c.rpc("delete_my_account");
   check("A: deletes own account", delA.error === null, delA.error?.message);
-  const gone = await fresh().auth.signInWithOtp({ email: emailA, options: { shouldCreateUser: false } });
+  const gone = await fresh().auth.signInWithPassword({ email: emailA, password });
   check("A: account no longer exists", gone.error !== null);
-  rl.close();
 } else {
   console.log("SKIP  part 2 (two real accounts): set SMOKE_EMAIL_A and SMOKE_EMAIL_B to run it");
 }

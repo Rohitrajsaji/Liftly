@@ -8,9 +8,15 @@ export function explain(e: unknown): string {
     case "offline":
       return "You're offline. Connect to the internet and try again.";
     case "rate_limited":
-      return "Too many tries. Wait a minute, then ask for a new code.";
-    case "bad_code":
-      return "That code didn't work. Check it, or ask for a new one.";
+      return "Too many tries. Wait a minute and try again.";
+    case "bad_password":
+      return "That email or password isn't right. Check them and try again.";
+    case "exists":
+      return "There's already an account for this email. Sign in instead.";
+    case "weak_password":
+      return "That password is too easy to guess. Use at least 8 characters.";
+    case "confirm_required":
+      return "Your account was created, but the sign-in needs your email confirmed first. Check your inbox, then sign in.";
     case "invalid_email":
       return "That email doesn't look right. Check it and try again.";
     default:
@@ -22,12 +28,18 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const field = "pressed min-h-14 w-full rounded-2xl px-4 text-base text-ink";
 
-export function EmailStep({ onBack, onSend }: { readonly onBack: () => void; readonly onSend: (email: string) => Promise<void> }) {
+export const MIN_PASSWORD = 8;
+
+/** Create an account or sign in, with an email and a password. */
+export function AuthStep({ onBack, onSubmit }: { readonly onBack: () => void; readonly onSubmit: (mode: "create" | "signin", email: string, password: string) => Promise<void> }) {
+  const [mode, setMode] = useState<"create" | "signin">("create");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const clean = email.trim().toLowerCase();
-  const valid = EMAIL_PATTERN.test(clean);
+  const valid = EMAIL_PATTERN.test(clean) && password.length >= (mode === "create" ? MIN_PASSWORD : 1);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,21 +47,22 @@ export function EmailStep({ onBack, onSend }: { readonly onBack: () => void; rea
     setBusy(true);
     setError(null);
     try {
-      await onSend(clean);
+      await onSubmit(mode, clean, password);
     } catch (err) {
       setError(explain(err));
       setBusy(false);
     }
   };
 
+  const tab = (m: "create" | "signin") => `min-h-12 rounded-full text-base ${mode === m ? "raised font-medium text-accent" : "text-muted"}`;
   return (
     <form onSubmit={(e) => void submit(e)} className="flex flex-1 flex-col">
       <Screen
-        title="What's your email?"
+        title={mode === "create" ? "Create your account" : "Sign in"}
         actions={
           <>
             <Button type="submit" disabled={!valid || busy}>
-              {busy ? "Sending…" : "Send me a code"}
+              {busy ? "One moment…" : mode === "create" ? "Create account" : "Sign in"}
             </Button>
             <Button variant="secondary" onClick={onBack}>
               Back
@@ -57,95 +70,36 @@ export function EmailStep({ onBack, onSend }: { readonly onBack: () => void; rea
           </>
         }
       >
-        <p className="text-base text-muted">We'll email you a 6-digit code. No password to remember.</p>
+        <div role="group" aria-label="Account" className="pressed grid grid-cols-2 gap-1 rounded-full p-1">
+          <button type="button" aria-pressed={mode === "create"} onClick={() => setMode("create")} className={tab("create")}>
+            New here
+          </button>
+          <button type="button" aria-pressed={mode === "signin"} onClick={() => setMode("signin")} className={tab("signin")}>
+            I have an account
+          </button>
+        </div>
         <label className="flex flex-col gap-2 text-base font-medium">
           Email
           <input type="email" name="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
         </label>
-        {error !== null && (
-          <Note tone="warn">
-            <span role="alert">{error}</span>
-          </Note>
-        )}
-      </Screen>
-    </form>
-  );
-}
-
-export function CodeStep({
-  email,
-  onBack,
-  onResend,
-  onVerify,
-}: {
-  readonly email: string;
-  readonly onBack: () => void;
-  readonly onResend: () => Promise<void>;
-  readonly onVerify: (code: string) => Promise<void>;
-}) {
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sentAgain, setSentAgain] = useState(false);
-  const valid = /^\d{6}$/.test(code);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!valid || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await onVerify(code);
-    } catch (err) {
-      setError(explain(err));
-      setBusy(false);
-    }
-  };
-
-  const resend = async () => {
-    setError(null);
-    setSentAgain(false);
-    try {
-      await onResend();
-      setSentAgain(true);
-    } catch (err) {
-      setError(explain(err));
-    }
-  };
-
-  return (
-    <form onSubmit={(e) => void submit(e)} className="flex flex-1 flex-col">
-      <Screen
-        title="Enter your code"
-        actions={
-          <>
-            <Button type="submit" disabled={!valid || busy}>
-              {busy ? "Checking…" : "Check code"}
-            </Button>
-            <Button variant="secondary" onClick={() => void resend()}>
-              Send a new code
-            </Button>
-            <Button variant="secondary" onClick={onBack}>
-              Use a different email
-            </Button>
-          </>
-        }
-      >
-        <p className="text-base text-muted">We sent a 6-digit code to {email}. It can take a minute to arrive.</p>
         <label className="flex flex-col gap-2 text-base font-medium">
-          6-digit code
+          Password
           <input
-            name="code"
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            className={`${field} text-center text-2xl tracking-[0.4em] tabular-nums`}
+            type={show ? "text" : "password"}
+            name="password"
+            autoComplete={mode === "create" ? "new-password" : "current-password"}
+            autoCapitalize="none"
+            spellCheck={false}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={field}
           />
         </label>
-        {sentAgain && <Note>A new code is on its way.</Note>}
+        <label className="flex min-h-12 items-center gap-3 text-base">
+          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} className="size-6" />
+          Show password
+        </label>
+        {mode === "create" && <p className="text-sm text-muted">At least {MIN_PASSWORD} characters. Keep it somewhere safe: there is no password reset yet.</p>}
         {error !== null && (
           <Note tone="warn">
             <span role="alert">{error}</span>

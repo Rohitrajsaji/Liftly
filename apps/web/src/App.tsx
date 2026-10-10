@@ -18,7 +18,7 @@ import { Workout } from "./screens/Workout";
 import { Experience } from "./screens/Experience";
 import { Preview } from "./screens/Preview";
 import { ProgramChoice } from "./screens/ProgramChoice";
-import { CodeStep, EmailStep } from "./screens/SignIn";
+import { AuthStep } from "./screens/SignIn";
 import { Welcome } from "./screens/Welcome";
 import { useInstallPrompt, useOnline } from "./shell";
 import { createSupabaseBackend } from "./supabaseBackend";
@@ -27,7 +27,7 @@ import { flushOutbox, pendingCount } from "./sync";
 import { useWorkout } from "./useWorkout";
 import { exerciseName as exerciseNameOf } from "./gym";
 
-type View = "onboarding" | "consent" | "email" | "code" | "account";
+type View = "onboarding" | "consent" | "auth" | "account";
 /** Where the user is inside the app once onboarded. */
 type Screen = "home" | "progress" | "history" | "gym" | "plan" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
 
@@ -38,7 +38,6 @@ export function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [view, setView] = useState<View>("onboarding");
-  const [email, setEmail] = useState("");
   const [pending, setPending] = useState(0);
   const online = useOnline();
   const install = useInstallPrompt();
@@ -196,26 +195,16 @@ export function App() {
           <Consent
             onBack={() => setView("onboarding")}
             onAccept={() => {
-              void recordConsent(db, new Date()).then(() => setView("email"));
+              void recordConsent(db, new Date()).then(() => setView("auth"));
             }}
           />
         )}
-        {view === "email" && backend !== null && (
-          <EmailStep
+        {view === "auth" && backend !== null && (
+          <AuthStep
             onBack={() => setView("onboarding")}
-            onSend={async (e) => {
-              await backend.sendCode(e);
-              setEmail(e);
-              setView("code");
-            }}
-          />
-        )}
-        {view === "code" && backend !== null && (
-          <CodeStep
-            email={email}
-            onBack={() => setView("email")}
-            onResend={() => backend.sendCode(email)}
-            onVerify={async (code) => finishSignIn(await backend.verifyCode(email, code))}
+            onSubmit={async (mode, email, password) =>
+              finishSignIn(mode === "create" ? await backend.signUp(email, password) : await backend.signIn(email, password))
+            }
           />
         )}
         {view === "account" && backend !== null && session !== null && (

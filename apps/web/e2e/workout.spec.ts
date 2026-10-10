@@ -1,6 +1,6 @@
 // M6: the workout experience, end to end in a real browser: gym weights, calibration, logging, rest timer, pain, offline.
 import { expect, test, type Page } from "@playwright/test";
-import { FakeSupabase, GOOD_CODE } from "./support/fakeSupabase";
+import { FakeSupabase } from "./support/fakeSupabase";
 
 async function onboard(page: Page, days: 3 | 4 = 3) {
   await page.goto("/");
@@ -193,9 +193,8 @@ test.describe("with an account", () => {
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page.getByRole("button", { name: "I agree and continue" }).click();
     await page.getByLabel("Email").fill("rohit@example.com");
-    await page.getByRole("button", { name: "Send me a code" }).click();
-    await page.getByLabel("6-digit code").fill(GOOD_CODE);
-    await page.getByRole("button", { name: "Check code" }).click();
+    await page.getByLabel("Password", { exact: true }).fill("correct horse 9");
+    await page.getByRole("button", { name: "Create account", exact: true }).click();
     await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
 
@@ -222,10 +221,10 @@ test.describe("with an account", () => {
     await p2.goto("/");
     await p2.getByRole("button", { name: "Sign in", exact: true }).click();
     await p2.getByRole("button", { name: "I agree and continue" }).click();
+    await p2.getByRole("button", { name: "I have an account" }).click();
     await p2.getByLabel("Email").fill("rohit@example.com");
-    await p2.getByRole("button", { name: "Send me a code" }).click();
-    await p2.getByLabel("6-digit code").fill(GOOD_CODE);
-    await p2.getByRole("button", { name: "Check code" }).click();
+    await p2.getByLabel("Password", { exact: true }).fill("correct horse 9");
+    await p2.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(p2.getByRole("heading", { name: "Today" })).toBeVisible();
     await expect(p2.locator("[data-workout-name]")).toHaveText("Workout B");
     await expect(p2.getByRole("button", { name: "Start workout" })).toBeVisible();
@@ -242,9 +241,8 @@ test.describe("with an account", () => {
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page.getByRole("button", { name: "I agree and continue" }).click();
     await page.getByLabel("Email").fill("rohit@example.com");
-    await page.getByRole("button", { name: "Send me a code" }).click();
-    await page.getByLabel("6-digit code").fill(GOOD_CODE);
-    await page.getByRole("button", { name: "Check code" }).click();
+    await page.getByLabel("Password", { exact: true }).fill("correct horse 9");
+    await page.getByRole("button", { name: "Create account", exact: true }).click();
     await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
     await expect.poll(() => fake.events.size).toBe(1);
     await expect.poll(() => fake.ladders.size).toBeGreaterThan(5);

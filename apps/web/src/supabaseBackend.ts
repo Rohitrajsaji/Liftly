@@ -17,8 +17,11 @@ export function toBackendError(e: unknown, fallback: string): BackendError {
   if (err.status === 0 || err.name === "AuthRetryableFetchError" || /failed to fetch|network|load failed/.test(text)) {
     return new BackendError("offline", "No connection");
   }
+  if (/invalid_credentials|invalid login credentials/.test(text)) return new BackendError("bad_password", "Wrong email or password");
+  if (/user_already_exists|already registered|already been registered/.test(text)) return new BackendError("exists", "Account exists");
+  if (/weak_password|password should be|password is too/.test(text)) return new BackendError("weak_password", "Password too weak");
+  if (/email_not_confirmed|not confirmed/.test(text)) return new BackendError("confirm_required", "Email not confirmed");
   if (err.status === 429 || /rate limit|over_email_send_rate_limit|too many/.test(text)) return new BackendError("rate_limited", "Too many requests");
-  if (/otp_expired|expired|invalid/.test(text) && /token|otp|code/.test(text)) return new BackendError("bad_code", "Code not accepted");
   if (/email/.test(text) && /invalid|valid/.test(text)) return new BackendError("invalid_email", "Email not accepted");
   return new BackendError("other", err.message ?? fallback);
 }
@@ -40,13 +43,18 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       if (error) return fail(error, "Could not read the session");
       return toSession(data.session?.user);
     },
-    async sendCode(email) {
-      const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-      if (error) fail(error, "Could not send the code");
+    async signUp(email, password) {
+      const { data, error } = await client.auth.signUp({ email, password });
+      if (error) return fail(error, "Could not create the account");
+      // With "Confirm email" switched on in Supabase there is a user but no session yet.
+      if (data.session === null) return fail(new BackendError("confirm_required", "Email not confirmed"), "Could not sign in");
+      const session = toSession(data.session.user);
+      if (session === null) return fail(new Error("No session returned"), "Could not sign in");
+      return session;
     },
-    async verifyCode(email, code) {
-      const { data, error } = await client.auth.verifyOtp({ email, token: code, type: "email" });
-      if (error) return fail(error, "Could not check the code");
+    async signIn(email, password) {
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) return fail(error, "Could not sign in");
       const session = toSession(data.session?.user ?? data.user);
       if (session === null) return fail(new Error("No session returned"), "Could not sign in");
       return session;

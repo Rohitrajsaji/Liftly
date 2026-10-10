@@ -1,10 +1,9 @@
 // A stand-in for Supabase that the browser tests can drive. It answers the requests the real supabase-js client makes
-// (email code, session, profile and consent rows, delete-my-account) and keeps rows with the same rules as the real
+// (email + password sign-up and sign-in, session, profile and consent rows, delete-my-account) and keeps rows with the same rules as the real
 // migration: client-made consent ids are unique, the newest profile update wins, and every call needs a signed-in token.
 import type { BrowserContext, Route } from "@playwright/test";
 
 export const SUPABASE_HOST = "https://liftly-test.supabase.co";
-export const GOOD_CODE = "123456";
 
 interface Profile {
   user_id: string;
@@ -41,14 +40,15 @@ export class FakeSupabase {
   users = new Map<string, string>(); // email -> user id
   profiles = new Map<string, Profile>();
   consents = new Map<string, Consent>();
-  codesSent: string[] = [];
+  passwords = new Map<string, string>(); // email -> password
+  signUps: string[] = [];
   /** Every REST (data) call, so tests can prove nothing was uploaded before sign-in. */
   restCalls: string[] = [];
   profileWrites = 0;
   rpcCalls: string[] = [];
   /** When true every request fails like a dropped connection. */
   offline = false;
-  /** When set, the next code request is refused as rate limited. */
+  /** When set, the next sign-up is refused as rate limited. */
   rateLimitNext = false;
 
   private idFor(email: string): string {
@@ -124,22 +124,28 @@ export class FakeSupabase {
       }
     };
 
-    if (path === "/auth/v1/otp") {
+    if (path === "/auth/v1/signup") {
       if (this.rateLimitNext) {
         this.rateLimitNext = false;
-        return this.json(route, 429, { code: 429, error_code: "over_email_send_rate_limit", msg: "email rate limit exceeded" });
+        return this.json(route, 429, { code: 429, error_code: "over_request_rate_limit", msg: "rate limit exceeded" });
       }
-      const email = String(body()["email"] ?? "");
-      this.codesSent.push(email);
-      this.idFor(email);
-      return this.json(route, 200, {});
-    }
-    if (path === "/auth/v1/verify") {
-      const { email, token } = body() as { email?: string; token?: string };
-      if (token !== GOOD_CODE || email === undefined) return this.json(route, 403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });
+      const { email, password } = body() as { email?: string; password?: string };
+      if (email === undefined || password === undefined) return this.json(route, 400, { code: 400, error_code: "validation_failed", msg: "missing" });
+      if (password.length < 8) return this.json(route, 422, { code: 422, error_code: "weak_password", msg: "Password should be at least 8 characters." });
+      if (this.passwords.has(email)) return this.json(route, 422, { code: 422, error_code: "user_already_exists", msg: "User already registered" });
+      this.passwords.set(email, password);
+      this.signUps.push(email);
       return this.json(route, 200, this.session(this.idFor(email)));
     }
     if (path === "/auth/v1/token") {
+      const grant = url.searchParams.get("grant_type");
+      if (grant === "password") {
+        const { email, password } = body() as { email?: string; password?: string };
+        if (email === undefined || this.passwords.get(email) !== password) {
+          return this.json(route, 400, { code: 400, error_code: "invalid_credentials", msg: "Invalid login credentials" });
+        }
+        return this.json(route, 200, this.session(this.idFor(email)));
+      }
       const refresh = String(body()["refresh_token"] ?? "").replace("refresh-", "");
       return this.json(route, 200, this.session(refresh));
     }
@@ -160,7 +166,7 @@ export class FakeSupabase {
         for (const [id, c] of this.consents) if (c.user_id === userId) this.consents.delete(id);
         for (const [id, e] of this.events) if (e.user_id === userId) this.events.delete(id);
         for (const [k, l] of this.ladders) if (l.user_id === userId) this.ladders.delete(k);
-        this.users.delete(this.emailOf(userId));
+        { const gone = this.emailOf(userId); this.users.delete(gone); this.passwords.delete(gone); }
         return this.json(route, 204, null);
       }
       if (path === "/rest/v1/profiles") {

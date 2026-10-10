@@ -38,7 +38,7 @@ export interface LadderRow {
   readonly updated_at: string;
 }
 
-export type BackendErrorKind = "offline" | "rate_limited" | "bad_code" | "invalid_email" | "other";
+export type BackendErrorKind = "offline" | "rate_limited" | "bad_password" | "exists" | "weak_password" | "confirm_required" | "invalid_email" | "other";
 
 export class BackendError extends Error {
   constructor(
@@ -53,8 +53,10 @@ export class BackendError extends Error {
 export interface Backend {
   /** The signed-in user, read from the device (works offline). */
   getSession(): Promise<Session | null>;
-  sendCode(email: string): Promise<void>;
-  verifyCode(email: string, code: string): Promise<Session>;
+  /** Creates the account and signs in. Throws "exists" when the email already has an account. */
+  signUp(email: string, password: string): Promise<Session>;
+  /** Throws "bad_password" for a wrong email or password. */
+  signIn(email: string, password: string): Promise<Session>;
   signOut(): Promise<void>;
   /** Deletes the account and every row linked to it, then signs out. */
   deleteAccount(): Promise<void>;

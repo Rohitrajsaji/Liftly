@@ -12,14 +12,7 @@ What to create, what to change, and which values to send. About 15 minutes. All 
    [`supabase/migrations/0001_accounts.sql`](supabase/migrations/0001_accounts.sql), and press **Run**. It should say "Success. No rows returned".
    It creates two tables (`profiles`, `consents`), their privacy rules, and the delete-my-account function. It does not touch any other setting.
    Then do the same with [`supabase/migrations/0002_workouts.sql`](supabase/migrations/0002_workouts.sql) (M6: workouts and gym weights; run it after 0001).
-3. **Make the emails send a code, not a link.** Open **Authentication → Emails → Templates**. For both **Confirm sign up** and **Magic link**, replace the body with:
-
-   ```html
-   <h2>Your Liftly code</h2>
-   <p>Enter this code in the app: <strong>{{ .Token }}</strong></p>
-   <p>It expires in 10 minutes. If you did not ask for it, ignore this email.</p>
-   ```
-   Then **Authentication → Sign In / Providers → Email**: keep "Enable Email provider" and "Enable email signups" on. Set "Email OTP expiration" to `600` seconds and "Email OTP length" to `6`.
+3. **Turn off email confirmation.** Liftly signs in with an email and a password, so no email template is needed. Open **Authentication → Sign In / Providers → Email**: keep "Enable Email provider" and "Enable email signups" on, and turn **"Confirm email" OFF**. Save.
 4. **Send me two values** (both are safe to paste in the thread; they are designed to be public in the app):
    - **Project URL**, like `https://abcdxyz.supabase.co` (Project Settings → Data API or General)
    - **Publishable key**, starting `sb_publishable_` (Project Settings → API Keys). The older "anon" key also works.
@@ -30,9 +23,9 @@ The **service_role / secret key**, the **database password**, and any **access t
 
 ## Limits to know about (Free plan)
 
-- **Email sending.** Supabase's built-in email service only delivers to people who are members of your Supabase organization, at a few emails per hour. That is enough for you to test. Before outside testers sign in, you need custom SMTP: a domain you own plus an email service (for example Resend, free for 3,000 emails a month). I will ask for that when you are ready for testers.
+- **No emails are sent** at sign-up or sign-in while "Confirm email" is off, so the Free plan's email limits do not matter. The cost: an account can be created with someone else's address, and there is no password reset yet (a reset email would need custom SMTP and a template). Before outside testers, turn confirmation on with custom SMTP (a domain you own plus an email service such as Resend) and add a reset flow.
 - **Pausing.** A Free project pauses after 7 days with no activity. Fine while building; before real testers, either use it daily or move to Pro (about $25 a month).
-- **Google sign-in** is not part of this first flow. It needs a Google Cloud OAuth client and adds setup; email code alone is enough to start.
+- **Google sign-in** is not part of this first flow. It needs a Google Cloud OAuth client and adds setup; email and password is enough to start.
 
 ## What I need from you besides Supabase
 
@@ -40,4 +33,4 @@ The **service_role / secret key**, the **database password**, and any **access t
 
 ## How I will check it
 
-With the two values I run a smoke test against your project: signed-out requests are refused, and the tables exist with privacy rules on. I cannot read your inbox, so the one thing I cannot test myself is receiving a real code; please do that once on your phone when I tell you it is ready.
+With the two values I run a smoke test against your project: signed-out requests are refused, and the tables exist with privacy rules on. please create an account once on your phone when I tell you it is ready.

@@ -1,9 +1,10 @@
-// M5: sign-in with an email code, consent, attaching the device's answers to the account, offline sync, deletion.
+// M5: email + password accounts, consent, attaching the device's answers to the account, offline sync, deletion.
 // A fake Supabase (e2e/support/fakeSupabase.ts) answers the app's real requests.
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { FakeSupabase, GOOD_CODE } from "./support/fakeSupabase";
+import { FakeSupabase } from "./support/fakeSupabase";
 
 const EMAIL = "rohit@example.com";
+const PASSWORD = "correct horse 9";
 
 function today(): string {
   const d = new Date();
@@ -21,13 +22,13 @@ async function onboard(page: Page, days: 3 | 4, months = 2) {
   await expect(page.getByRole("heading", { name: "Your plan" })).toBeVisible();
 }
 
-async function signIn(page: Page, email = EMAIL) {
+async function signIn(page: Page, mode: "create" | "signin" = "create", email = EMAIL) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.getByRole("button", { name: "I agree and continue" }).click();
+  if (mode === "signin") await page.getByRole("button", { name: "I have an account" }).click();
   await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Send me a code" }).click();
-  await page.getByLabel("6-digit code").fill(GOOD_CODE);
-  await page.getByRole("button", { name: "Check code" }).click();
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: mode === "create" ? "Create account" : "Sign in", exact: true }).click();
   await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
 }
 
@@ -36,22 +37,20 @@ async function setup(context: BrowserContext, fake = new FakeSupabase()) {
   return fake;
 }
 
-test("sign in with an email code: nothing uploads before, then plan and consent attach to the account", async ({ page, context }) => {
+test("create an account: nothing uploads before, then plan and consent attach to the account", async ({ page, context }) => {
   const fake = await setup(context);
   await onboard(page, 4, 2);
   await page.getByRole("button", { name: "Create account to save your plan" }).click();
   await expect(page.getByRole("heading", { name: "Before you create an account" })).toBeVisible();
   await page.getByRole("button", { name: "I agree and continue" }).click();
-  await page.getByLabel("Email").fill(EMAIL);
-  await page.getByRole("button", { name: "Send me a code" }).click();
-  await expect(page.getByRole("heading", { name: "Enter your code" })).toBeVisible();
-  // C7: through onboarding, consent and the code request, no data call has been made.
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+  // C7: through onboarding and consent, no data call has been made.
   expect(fake.restCalls).toEqual([]);
-  expect(fake.codesSent).toEqual([EMAIL]);
-
-  await page.getByLabel("6-digit code").fill(GOOD_CODE);
-  await page.getByRole("button", { name: "Check code" }).click();
+  await page.getByLabel("Email").fill(EMAIL);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  expect(fake.signUps).toEqual([EMAIL]);
   await expect(page.getByText("Your plan is saved to your account.")).toBeVisible();
 
   await expect.poll(() => fake.profiles.size).toBe(1);
@@ -61,31 +60,40 @@ test("sign in with an email code: nothing uploads before, then plan and consent 
   await expect(page.locator("[data-sync-pending]")).toHaveCount(0);
 });
 
-test("wrong code, then the right one; an offline request and a rate limit are explained", async ({ page, context }) => {
+test("password problems are explained: short, wrong, already registered, rate limited, offline", async ({ page, context }) => {
   const fake = await setup(context);
+  fake.passwords.set(EMAIL, PASSWORD);
+  fake.users.set(EMAIL, "00000000-0000-4000-8000-000000000099");
   await onboard(page, 3);
   await page.getByRole("button", { name: "Create account to save your plan" }).click();
   await page.getByRole("button", { name: "I agree and continue" }).click();
+  const submit = page.getByRole("button", { name: "Create account", exact: true });
   await page.getByLabel("Email").fill("not-an-email");
-  await expect(page.getByRole("button", { name: "Send me a code" })).toBeDisabled();
-
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await expect(submit).toBeDisabled();
   await page.getByLabel("Email").fill(EMAIL);
+  await page.getByLabel("Password", { exact: true }).fill("short");
+  await expect(submit).toBeDisabled();
+
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   fake.rateLimitNext = true;
-  await page.getByRole("button", { name: "Send me a code" }).click();
+  await submit.click();
   await expect(page.getByRole("alert")).toContainText("Too many tries");
   fake.offline = true;
   await context.setOffline(true);
-  await page.getByRole("button", { name: "Send me a code" }).click();
+  await submit.click();
   await expect(page.getByRole("alert")).toContainText("You're offline");
   fake.offline = false;
   await context.setOffline(false);
-  await page.getByRole("button", { name: "Send me a code" }).click();
+  await submit.click();
+  await expect(page.getByRole("alert")).toContainText("already an account");
 
-  await page.getByLabel("6-digit code").fill("000000");
-  await page.getByRole("button", { name: "Check code" }).click();
-  await expect(page.getByRole("alert")).toContainText("That code didn't work");
-  await page.getByLabel("6-digit code").fill(GOOD_CODE);
-  await page.getByRole("button", { name: "Check code" }).click();
+  await page.getByRole("button", { name: "I have an account" }).click();
+  await page.getByLabel("Password", { exact: true }).fill("wrong password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("email or password isn't right");
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
 });
 
@@ -100,7 +108,7 @@ test("a new phone: signing in to the same account brings back the saved plan", a
   const phone2 = await other.newPage();
   await phone2.goto("/");
   await expect(phone2.getByRole("heading", { name: "Know what to lift next" })).toBeVisible();
-  await signIn(phone2);
+  await signIn(phone2, "signin");
   await expect(phone2.getByRole("heading", { name: "Your plan" })).toBeVisible();
   await expect(phone2.getByText("4-Day Upper / Lower Program")).toBeVisible();
   await expect(phone2.locator("[data-workout]")).toHaveCount(4);
@@ -201,7 +209,7 @@ test("account screens fit the phone: large targets, no sideways scroll", async (
   const check = async (label: string, heading: string) => {
     // Measure only once the screen has replaced the previous one.
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-    const small = await page.locator("button, input").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().height < 48).map((e) => e.textContent));
+    const small = await page.locator("button, input:not([type=checkbox])").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().height < 48).map((e) => e.textContent));
     expect(small, label).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   };
@@ -209,12 +217,10 @@ test("account screens fit the phone: large targets, no sideways scroll", async (
   await page.getByRole("button", { name: "Create account to save your plan" }).click();
   await check("consent", "Before you create an account");
   await page.getByRole("button", { name: "I agree and continue" }).click();
-  await check("email", "What's your email?");
+  await check("create", "Create your account");
   await page.getByLabel("Email").fill(EMAIL);
-  await page.getByRole("button", { name: "Send me a code" }).click();
-  await check("code", "Enter your code");
-  await page.getByLabel("6-digit code").fill(GOOD_CODE);
-  await page.getByRole("button", { name: "Check code" }).click();
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
   await page.getByRole("button", { name: "Account" }).click();
   await check("account", "Account");
