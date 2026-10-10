@@ -3,8 +3,9 @@
 import { exercise } from "@liftly/catalog";
 import { REP_RANGES } from "@liftly/engine";
 import { FIRST_EXPOSURE_LINE, FOLLOW_UP_QUESTION, formatKg, REASON_LINES, swapLine, PAUSED_SLOT_TEXT, type FollowUp, type PlannedExercise, type SessionRecord } from "@liftly/workout";
+import { setCounts } from "../dots";
 import { exerciseName } from "../gym";
-import { Button, Note, Screen } from "../ui";
+import { Button, LinkButton, Note, Screen } from "../ui";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -44,9 +45,12 @@ export function Home({
   readonly start: { readonly gymDone: boolean; readonly accountDone: boolean; readonly accountAvailable: boolean; readonly onAccount: () => void } | null;
 }) {
   const follow = followUps[0];
+  // When every exercise carries the same first-time line, say it once above the list instead of on every card.
+  const allFirst = plan !== null && plan.length > 1 && plan.every((p) => p.prescription?.kind === "working" && p.prescription.firstExposure);
   return (
     <Screen
-      title="Today"
+      title={workoutName}
+      eyebrow={`Today · ${new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" })}`}
       actions={
         missingGym ? (
           <Button onClick={onGym}>Set your gym's weights</Button>
@@ -73,12 +77,19 @@ export function Home({
           </div>
         </section>
       )}
-      <div>
-        <p className="text-2xl font-semibold" data-workout-name>
-          {workoutName}
-        </p>
-        <p className="text-base text-muted">{lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}</p>
-      </div>
+      <p className="-mt-3 text-base text-muted">
+        {lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}
+      </p>
+      {active !== null && (
+        <section className="card-accent rise flex items-center justify-between gap-3 p-4" aria-label="Workout in progress" data-resume>
+          <span>
+            <span className="block text-base font-medium">Workout in progress</span>
+            <span className="block text-sm text-muted tabular-nums">
+              {resumeText(active.startedAt)} · {setCounts(active).done} of {setCounts(active).total} sets
+            </span>
+          </span>
+        </section>
+      )}
       {start !== null && active === null && (
         <section className="card p-5" aria-label="Getting started" data-getting-started>
           <p className="text-base font-medium">Getting started</p>
@@ -99,22 +110,19 @@ export function Home({
         </Note>
       )}
       {planError !== null && !missingGym && <Note tone="warn">{planError}</Note>}
+      {plan !== null && allFirst && <Note>{FIRST_EXPOSURE_LINE}</Note>}
       {plan !== null && (
-        <ol className="stagger flex flex-col gap-4" aria-label="Today's exercises" data-plan>
+        <ol className="stagger flex flex-col gap-3" aria-label="Today's exercises" data-plan>
           {plan.map((p) => (
-            <li key={p.slotOrder} className="card p-5" data-exercise-row>
-              <PlannedRow p={p} />
+            <li key={p.slotOrder} className="card px-5 py-4" data-exercise-row>
+              <PlannedRow p={p} hideFirst={allFirst} />
             </li>
           ))}
         </ol>
       )}
-      <div className="flex gap-2">
-        <button type="button" onClick={onPlan} className="min-h-12 rounded-xl px-3 text-base font-medium text-accent underline">
-          See full plan
-        </button>
-        <button type="button" onClick={onGym} className="min-h-12 rounded-xl px-3 text-base font-medium text-accent underline">
-          Gym weights
-        </button>
+      <div className="flex gap-6">
+        <LinkButton onClick={onPlan}>See full plan</LinkButton>
+        <LinkButton onClick={onGym}>Gym weights</LinkButton>
       </div>
     </Screen>
   );
@@ -131,9 +139,9 @@ function Step({ done, label, hint, action }: { readonly done: boolean; readonly 
         <span className="sr-only">{done ? " (done)" : " (to do)"}</span>
         {hint !== undefined && <span className="block text-sm text-muted">{hint}</span>}
         {action !== undefined && (
-          <button type="button" onClick={action.onClick} className="min-h-12 rounded-xl text-sm font-medium text-accent underline">
+          <LinkButton onClick={action.onClick} className="text-sm">
             {action.label}
-          </button>
+          </LinkButton>
         )}
       </span>
     </li>
@@ -147,17 +155,18 @@ export function targetText(p: PlannedExercise): string {
   return `${formatKg(p.prescription.weightG)} kg × ${p.sets} × ${range.bottom}–${range.top}`;
 }
 
-function PlannedRow({ p }: { readonly p: PlannedExercise }) {
+function PlannedRow({ p, hideFirst }: { readonly p: PlannedExercise; readonly hideFirst: boolean }) {
   const name = p.exerciseId === null ? exerciseName(p.slotExerciseId) : exerciseName(p.exerciseId);
   const rx = p.prescription;
   const lines: string[] = [];
   if (p.paused) lines.push(PAUSED_SLOT_TEXT);
   if (p.isSwap && p.exerciseId !== null) lines.push(swapLine(exercise(p.slotExerciseId).name, exercise(p.exerciseId).name));
   if (rx !== null) {
-    if (rx.kind === "calibration") if (rx.reasonCode === "RECAL") lines.push(REASON_LINES.RECAL);
-    else {
+    if (rx.kind === "calibration") {
+      if (rx.reasonCode === "RECAL") lines.push(REASON_LINES.RECAL);
+    } else {
       if (rx.reasonCode !== null) lines.push(REASON_LINES[rx.reasonCode]);
-      if (rx.firstExposure) lines.push(FIRST_EXPOSURE_LINE);
+      if (rx.firstExposure && !hideFirst) lines.push(FIRST_EXPOSURE_LINE);
     }
   }
   return (
@@ -187,4 +196,9 @@ export function previousText(prev: NonNullable<PlannedExercise["previous"]>): st
   const sameWeight = weight !== undefined && sets.every((s) => s.weightG === weight);
   const reps = sets.map((s) => s.reps).join(", ");
   return sameWeight ? `${formatKg(weight)} kg × ${reps}` : sets.map((s) => `${formatKg(s.weightG)} kg × ${s.reps}`).join(", ");
+}
+
+function resumeText(startedAt: string): string {
+  const min = Math.max(1, Math.round((Date.now() - Date.parse(startedAt)) / 60000));
+  return min < 120 ? `Started ${min} min ago` : "Started earlier";
 }

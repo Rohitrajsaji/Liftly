@@ -36,7 +36,8 @@ export interface WorkoutController {
   /** Today's plan, or null while a gym list is missing. */
   readonly plan: PlannedExercise[] | null;
   readonly planError: string | null;
-  start(): void;
+  /** Starts today's workout and returns it (null if it could not start). */
+  start(): SessionRecord | null;
   /** Changes the workout in progress and saves it. */
   update(fn: (s: SessionRecord) => SessionRecord): void;
   finish(): Promise<void>;
@@ -98,9 +99,11 @@ export function useWorkout(db: LiftlyDb, profile: Profile, session: Session | nu
   );
 
   const start = useCallback(() => {
-    if (ctx === null || plan === null || activeRef.current !== null) return;
+    if (ctx === null || plan === null || activeRef.current !== null) return null;
     const now = new Date();
-    persist(startSession(plan, { id: crypto.randomUUID(), programId: ctx.programId, slotKey: nextWorkoutKey(data.state, ctx.programId), today: localDate(now), now, state: data.state }));
+    const s = startSession(plan, { id: crypto.randomUUID(), programId: ctx.programId, slotKey: nextWorkoutKey(data.state, ctx.programId), today: localDate(now), now, state: data.state });
+    persist(s);
+    return s;
   }, [ctx, plan, data.state, persist]);
 
   const update = useCallback(
