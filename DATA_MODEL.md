@@ -59,6 +59,20 @@ Field names are conceptual. Types and formats are chosen during architecture.
 
 Programs and slots are fixed by the frozen spec. They are reference data, not user data.
 
+### Plan version (revision 1.2)
+| Field | Notes |
+|---|---|
+| plan_version_id | Client-made id |
+| user_id, program_id | |
+| answers | Equipment marked missing, preference, exercises to avoid |
+| picks | Per slot: slot_key, slot_order, exercise_id, swap_id |
+| source | `ai`, `rules` or `fixed` |
+| explanation | Shown text, and whether it is fixed text |
+| spec_version | `1.2` |
+| created_at | |
+
+A session records the plan_version_id it used, so every decision can be replayed against the plan in force. With no tailoring there is one implicit `fixed` version.
+
 ### Session
 | Field | Notes |
 |---|---|
@@ -162,6 +176,7 @@ Progression decision 0..1─* Override
 Exercise *─1 Ladder (per gym)
 Exercise *─0..1 Exercise (swap)
 Program 1─* Program slot *─1 Exercise
+User 1─* Plan version 1─* Session
 ```
 
 ## 3. Derived values (computed, not typed in)

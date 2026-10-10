@@ -13,7 +13,7 @@
 | Calibration | Ramp to bottom-of-range with a Good effort |
 | Pain | Report, stop, freeze, approved swap, professional-help screen |
 | Plan | Sequence-based (not weekday-based) |
-| Claude | Post-workout debrief only |
+| Claude | Post-workout debrief; plan tailoring (picks among approved slot menus, revision 1.2) |
 | Progress | Weight over time per exercise, personal records list, sessions per week |
 | Account | Preview before sign-in; account required before the first saved workout |
 | Offline | Logging works without a connection |
@@ -25,7 +25,7 @@
 |---|---|
 | Coach chat or free-form questions | Keeps Claude's role narrow and testable |
 | Nutrition guidance | Later phase |
-| Claude-written plans; custom routine builder; user-created exercises | Engine must stay deterministic and the exercise library fixed |
+| Claude-invented plans; custom routine builder; user-created exercises | Engine must stay deterministic and the exercise library fixed. (Claude may only pick among approved slot menus, revision 1.2.) |
 | Numeric RPE/RIR input | Effort taps keep logging simple for beginners |
 | Strength / powerlifting goals; periodization | Beginner, muscle-building scope only |
 | Native iOS / Android apps | Web app first |
@@ -45,7 +45,7 @@
 
 ## Product boundaries
 
-1. **Engine decides, Claude explains.** Claude never sets or changes weights, reps, sets, or progression, and never chooses exercises.
+1. **Engine decides, Claude explains.** Claude never sets or changes weights, reps, sets, or progression, and never chooses exercises except among the approved slot menus, validated by the app (revision 1.2).
 2. **Fixed exercise library.** Users pick from the approved library and its approved swaps only.
 3. **No medical role.** Liftly does not diagnose pain, injury, or medical conditions.
 4. **Beginner-first.** Features that serve advanced lifters are out of scope.

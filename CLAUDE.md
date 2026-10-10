@@ -60,9 +60,9 @@ Markers: `[ASSUMPTION]` is a proposal to confirm, `[OPEN]` is a decision needed 
 
 ## Architecture rules that cut across documents
 
-**Engine decides, Claude explains.** The progression engine is a deterministic, pure function of stored data (sets, days since last session, ladder, history, engine version). Claude never sets or suggests weights, reps, sets, progression, or exercises. Logging, the engine, pain handling, and progress tracking must work with Claude unavailable and with no network.
+**Engine decides, Claude explains.** The progression engine is a deterministic, pure function of stored data (sets, days since last session, ladder, history, engine version). Claude never sets or suggests weights, reps, sets or progression, and never chooses exercises except among the approved slot menus of plan tailoring (PROGRAMS 3b, AI_COACH 4a, DECISIONS P7), which the app validates. Logging, the engine, pain handling, and progress tracking must work with Claude unavailable and with no network.
 
-**Spec freeze.** Engine, calibration, pain rules, and programs must match v1.0 exactly. Any rule change needs a new numbered spec version (and a safety review if it touches progression, pain, or Claude's role). Per `TESTING.md` §12, a failing scenario is a spec question, not something to "fix" in code.
+**Spec freeze.** Engine, calibration, pain rules, and programs must match v1.0 exactly. Any rule change needs a new numbered spec version (and a safety review if it touches progression, pain, or Claude's role). Per `TESTING.md` §13, a failing scenario is a spec question, not something to "fix" in code.
 
 **Engine details that are easy to get wrong:**
 - Decision table rows are checked top to bottom; first match wins. Row 1 pain beats everything.

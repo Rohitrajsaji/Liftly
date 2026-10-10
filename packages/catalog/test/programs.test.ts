@@ -71,7 +71,7 @@ describe("catalog matches PROGRAMS.md exactly", () => {
 
   it("swap-only exercises: class, equipment and rep range match section 3a", () => {
     const start = MD.indexOf("\n# 3a. Swap Exercise Reference");
-    const body = MD.slice(start, MD.indexOf("\n# 4.", start));
+    const body = MD.slice(start, start + MD.slice(start + 1).search(/\n# (3b|4)\./) + 1);
     const md = body
       .split("\n")
       .filter((l) => l.startsWith("| ") && !l.startsWith("| Exercise") && !l.startsWith("|---"))

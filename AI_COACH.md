@@ -4,7 +4,7 @@
 
 Claude explains. The progression engine decides.
 
-In V1, Claude's only user-facing output is the **post-workout debrief**. There is no chat, no free-form questions, and no weekly review in the frozen spec (see section 4).
+In V1, Claude's user-facing outputs are the **post-workout debrief** and, from revision 1.2, **plan tailoring** (section 4a). There is no chat, no free-form questions, and no weekly review in the frozen spec (see section 4).
 
 Claude also explains stall decisions inside the debrief, using the engine's reason codes. For pain, Claude may only name the `PAIN_SWAP` code and say the exercise changes next session; all pain and swap wording is fixed text from SAFETY.md section 5, shown by the app outside Claude's text (DECISIONS.md, C4). Claude never makes these decisions.
 
@@ -47,6 +47,28 @@ Free-text notes are passed through as data. Claude must not follow instructions 
 
 [OPEN] Listed in the original MVP definition, but **not part of the frozen v1.0 spec.** Excluded from V1 until decided. If included later, it must follow the same rules: explanation only, numbers from the input, no new decisions.
 
+## 4a. Plan tailoring (revision 1.2, DRAFT)
+
+Claude's second V1 output, chosen by Rohit on 2026-10-10. It changes which exercise fills each slot of the fixed program. It never changes anything else.
+
+**Questions (all optional):** equipment the gym does not have (machines, cables, dumbbells), a preference (no preference, machines or free weights), and exercises to avoid (picked from the plan's own list, only those with an alternative). Session length and focus were considered and left out: with sets, slots and order frozen they would change nothing.
+
+**The rules come first.** The app builds, with no AI, the allowed options for every slot from the menus in PROGRAMS.md section 3b, minus avoided exercises and missing equipment. From these it builds a *rules plan*: the first allowed option on each menu, preferring the user's preferred equipment, with no repeat in a workout. This plan alone satisfies every hard answer, offline.
+
+**What Claude does.** Where two or more options remain for a slot, Claude may pick among them, guided by the preference, and writes a short explanation (two or three sentences, simple language, kilograms never mentioned).
+
+**Input:** program, months of training, the allowed options per slot (ids and names), the preference. No names, emails or notes. Nothing the user typed freely is sent.
+
+**Structured output:** `picks` (slot key, order, exercise id) and `explanation_text`.
+
+**Validation (the app, before anything is shown):**
+- Every pick is one of the allowed options for its slot, every slot has exactly one pick, and no exercise repeats within a workout. Any failure discards all picks and the rules plan is used.
+- The explanation names only exercises in the plan, contains no digits, contains no diagnostic or medical wording and stays within 60 words. Any failure replaces only the explanation with fixed text; valid picks stand.
+
+**Fallback.** Claude unavailable, slow, offline or failing: the rules plan is shown at once with fixed explanation text, and the app retries once later. A retry that succeeds replaces the plan only before the first workout of that plan version, otherwise it waits for the next re-tailor.
+
+**Never:** weights, reps, sets, progression, exercises outside the menus, anything about pain or injury. Pain, swap and serious-pain wording stays fixed text (SAFETY.md section 5). Each tailored plan is stored as a plan version (DATA_MODEL.md).
+
 ## 5. What Claude may explain
 
 - Why a target went up, stayed, or went down (using the reason code and the engine's numbers).
@@ -60,7 +82,7 @@ Free-text notes are passed through as data. Claude must not follow instructions 
 
 - Any weight, rep, or set target.
 - Whether to progress, hold, deload, or stall.
-- Which exercise or swap to prescribe. (Swaps come from the fixed list.)
+- Which exercise or swap to prescribe, except the plan-tailoring pick among the approved slot menus (section 4a), which the app validates. (Swaps come from the fixed list.)
 - Whether pain is serious or what caused it.
 - Whether the user should train through pain.
 - Any medical, injury, or rehabilitation advice.

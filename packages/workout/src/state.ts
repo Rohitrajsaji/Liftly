@@ -81,7 +81,7 @@ export function applySession(state: PlanState, session: SessionRecord): PlanStat
       slot = { ...slot, pain: er.painStateAfter, paused: er.slotPausedAfter, recalibrateOnReturn: er.pain.onSwap ? slot.recalibrateOnReturn : er.painBeforeCalibrated };
       if (!er.pain.onSwap) {
         // The next exposure uses the swap, starting with a ramp.
-        const swapId = swapFor(session.programId, slotId);
+        const swapId = er.swapExerciseId ?? swapFor(session.programId, slotId);
         exercises[swapId] = { ...get(swapId), needsCalibration: true };
       }
       followUps.push({ painId: er.pain.id, slotExerciseId: slotId, exerciseId: er.exerciseId, reportedAt: er.pain.reportedAt });

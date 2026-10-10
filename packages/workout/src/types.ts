@@ -4,7 +4,7 @@
 // All loads are integer grams.
 
 import type { PainState, ReasonCode, SeriousReason, Decision, Effort, Exposure, StoredTarget } from "@liftly/engine";
-import type { ProgramId, SlotKey } from "@liftly/catalog";
+import type { Program, ProgramId, SlotKey } from "@liftly/catalog";
 
 export type PainLocation = "shoulder" | "elbow" | "wrist" | "upper_back" | "lower_back" | "neck" | "hip" | "knee" | "ankle" | "other";
 
@@ -65,6 +65,8 @@ export interface ExerciseRecord {
   readonly exerciseId: string;
   /** The program's own exercise for this slot. */
   readonly slotExerciseId: string;
+  /** The slot's swap in the plan this session used (plan tailoring). Absent in older sessions: the program's swap applies. */
+  readonly swapExerciseId?: string;
   readonly targetSets: number;
   readonly prescription: PrescriptionRecord;
   /** The gym ladder used, kept so the decision can be replayed. */
@@ -153,4 +155,6 @@ export interface WorkoutContext {
   readonly startDate: string;
   /** The gym ladder per exercise, in grams. */
   readonly ladders: Readonly<Record<string, readonly number[]>>;
+  /** The tailored plan in force (PROGRAMS.md 3b). Absent: the fixed program. */
+  readonly program?: Program;
 }

@@ -151,7 +151,25 @@ Interpretation used (PROGRESSION_ENGINE.md section 7): compare the current sessi
 | O-02 | Close the app mid-workout, reopen | Session and sets restored. |
 | O-03 | Reconnect after an offline session | Synced with no duplicates. [ASSUMPTION: conflict behaviour] |
 
-## 12. Test execution
+## 12. Plan tailoring (AI_COACH.md 4a, PROGRAMS.md 3b)
+
+| ID | Scenario | Expected |
+|---|---|---|
+| T-01 | No answers given | The tailored plan equals the fixed plan, slot by slot. |
+| T-02 | Cables marked missing | No cable exercise is chosen wherever the menu has an alternative. A slot with no allowed option keeps its fixed exercise and is flagged. |
+| T-03 | An exercise with alternatives is avoided | It is absent from the plan. |
+| T-04 | Preference: free weights | In the rules plan, a dumbbell option is chosen wherever one is allowed. |
+| T-05 | AI picks an exercise not on the slot's allowed list | All picks rejected. Rules plan used. |
+| T-06 | AI returns two picks for one slot, or misses a slot | All picks rejected. Rules plan used. |
+| T-07 | AI repeats an exercise within one workout | All picks rejected. Rules plan used. |
+| T-08 | Explanation names an exercise outside the plan, contains a digit, or uses diagnostic wording | Fixed explanation shown. Valid picks stand. |
+| T-09 | AI unavailable, slow or offline | Rules plan shown at once with fixed text. One retry later. Logging unaffected. |
+| T-10 | Any tailored plan | Every slot keeps its set count, order and exercise class from the fixed plan. |
+| T-11 | Re-tailor after workouts | An exercise still in the plan keeps its history and progression. A new exercise starts calibration. |
+| T-12 | Plan changes after a session | The session's stored decisions still replay against the plan version it used. |
+| T-13 | Pain on a tailored exercise | The plan's swap is used with the fixed pain text. Engine pain rules unchanged. |
+
+## 13. Test execution
 
 - **Phase 0:** run the scenarios by hand against the paper or spreadsheet version of the engine.
 - **Later:** each scenario becomes an automated test, with the expected outputs as fixed fixtures.

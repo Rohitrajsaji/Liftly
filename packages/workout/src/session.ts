@@ -77,6 +77,7 @@ export function startSession(plan: readonly PlannedExercise[], args: { id: strin
         slotOrder: i + 1,
         exerciseId: p.exerciseId,
         slotExerciseId: p.slotExerciseId,
+        swapExerciseId: p.swapId,
         targetSets: p.sets,
         prescription: p.prescription,
         ladderG: [...p.ladderG],

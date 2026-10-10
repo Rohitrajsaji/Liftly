@@ -49,6 +49,8 @@ The app then shows the professional-help screen. It doesn't diagnose or suggest 
 | Swap explanation | Fixed text | Neutral description |
 | Stall, gap, progression explanation | Claude, then validated | Must use only engine numbers and reason codes |
 | Debrief fallback | Fixed text | Used when Claude output fails validation |
+| Plan tailoring explanation | Claude, then validated | Only exercises in the plan, no numbers, no medical wording; fixed text on failure (AI_COACH.md 4a) |
+| "Avoid" preference | The user's choice | An exercise preference only, never a body area or injury question; Liftly does not ask why |
 
 ### Fixed text (drafts; final wording to be approved before build)
 

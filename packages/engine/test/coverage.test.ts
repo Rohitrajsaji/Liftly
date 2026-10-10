@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(__dirname, "..", "..", "..");
 const ENGINE_PREFIXES = ["D", "B", "C", "W", "S", "G", "P", "L", "R"];
 /** Scenario groups that belong to later milestones, not the engine. */
-const LATER = { A: "M9 debrief validator (packages/coach)", O: "M5 offline sync (apps/web e2e)" };
+const LATER = { A: "M9 debrief validator (packages/coach)", O: "M5 offline sync (apps/web e2e)", T: "plan tailoring (packages/workout)" };
 
 function testingIds(): string[] {
   const md = readFileSync(join(ROOT, "TESTING.md"), "utf8");

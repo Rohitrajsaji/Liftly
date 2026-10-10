@@ -1,7 +1,7 @@
 // Today's workout: for each slot in the next program workout, which exercise (the original or its swap) and what the
 // engine prescribes for it. Pure: the same state, ladders and date always give the same plan.
 
-import { exercise, nextSlotKey, PROGRAMS, slot as programSlot, swapFor, type ProgramId, type SlotKey } from "@liftly/catalog";
+import { exercise, nextSlotKey, PROGRAMS, type Program, type ProgramId, type SlotKey } from "@liftly/catalog";
 import { calibrationStart, daysBetween, ENGINE_VERSION, prescribe, REP_RANGES, type ExerciseType } from "@liftly/engine";
 import { exerciseState, slotState } from "./state";
 import type { ExerciseState, PlanState, PrescriptionRecord, WorkoutContext } from "./types";
@@ -12,6 +12,8 @@ export interface PlannedExercise {
   readonly slotExerciseId: string;
   /** The exercise to do: the original, or its swap after pain. Null when the slot is paused. */
   readonly exerciseId: string | null;
+  /** The slot's swap: used after a pain report. */
+  readonly swapId: string;
   readonly isSwap: boolean;
   readonly paused: boolean;
   readonly sets: number;
@@ -28,9 +30,9 @@ function typeOf(exerciseId: string): ExerciseType {
 }
 
 /** Every exercise a program can ask for (its own and its swaps) that has no ladder yet. */
-export function exercisesMissingLadder(programId: ProgramId, ladders: WorkoutContext["ladders"]): string[] {
+export function exercisesMissingLadder(programId: ProgramId, ladders: WorkoutContext["ladders"], program?: Program): string[] {
   const ids = new Set<string>();
-  for (const s of PROGRAMS[programId].slots) for (const r of s.exercises) ids.add(r.exerciseId).add(r.swapId);
+  for (const s of (program ?? PROGRAMS[programId]).slots) for (const r of s.exercises) ids.add(r.exerciseId).add(r.swapId);
   return [...ids].filter((id) => (ladders[id]?.length ?? 0) === 0);
 }
 
@@ -79,21 +81,23 @@ function prescriptionFor(state: PlanState, exerciseId: string, type: ExerciseTyp
 
 /** The plan for one program workout on a given day (YYYY-MM-DD). Throws if a needed ladder is missing. */
 export function planWorkout(state: PlanState, ctx: WorkoutContext, key: SlotKey, today: string): PlannedExercise[] {
-  const workout = programSlot(ctx.programId, key);
+  const workout = (ctx.program ?? PROGRAMS[ctx.programId]).slots.find((s) => s.key === key);
+  if (workout === undefined) throw new Error(`Slot ${key} is not in program ${ctx.programId}`);
   return workout.exercises.map((row): PlannedExercise => {
     const slot = slotState(state, row.exerciseId);
     const type = typeOf(row.exerciseId);
     if (slot.paused) {
-      return { slotOrder: row.order, slotExerciseId: row.exerciseId, exerciseId: null, isSwap: false, paused: true, sets: row.sets, type, ladderG: [], prescription: null, previous: null };
+      return { slotOrder: row.order, slotExerciseId: row.exerciseId, swapId: row.swapId, exerciseId: null, isSwap: false, paused: true, sets: row.sets, type, ladderG: [], prescription: null, previous: null };
     }
     const useSwap = slot.pain.status !== "active";
-    const exerciseId = useSwap ? swapFor(ctx.programId, row.exerciseId) : row.exerciseId;
+    const exerciseId = useSwap ? row.swapId : row.exerciseId;
     const exType = typeOf(exerciseId);
     const ladderG = ctx.ladders[exerciseId];
     if (ladderG === undefined || ladderG.length === 0) throw new Error(`No ladder for ${exerciseId}`);
     return {
       slotOrder: row.order,
       slotExerciseId: row.exerciseId,
+      swapId: row.swapId,
       exerciseId,
       isSwap: useSwap,
       paused: false,

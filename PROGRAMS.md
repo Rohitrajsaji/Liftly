@@ -2,6 +2,8 @@
 
 This document defines the fixed beginner hypertrophy programs used by Liftly V1.
 
+**Revision 1.2 (2026-10-10, DRAFT, Rohit chose AI plan tailoring):** adds section 3b, the slot menus. The fixed programs above are unchanged and remain the default and the fallback. Menus await Rohit's sign-off before they are built.
+
 **Revision 1.1 (2026-10-08, approved by Rohit):** swap-only exercises given full metadata (section 3a); Assisted Pull-up replaced by Machine Pulldown; Overhead Triceps Extension named Overhead Cable Triceps Extension; Upper 2 Seated Cable Row swap changed to One-Arm Dumbbell Row and Lower 1 Leg Extension swap changed to Goblet Squat, so no swap repeats an exercise in the same workout; 45-Degree Back Extension progresses by external load (section 6). See DECISIONS.md, P1 to P4.
 
 These programs are designed for users with approximately **0–12 months of training experience** whose primary goal is **muscle hypertrophy** in a standard commercial gym.
@@ -142,6 +144,66 @@ One-Arm Dumbbell Row confirmed as compound, dumbbell, 8–12 (Rohit, 2026-10-08,
 
 ---
 
+# 3b. Slot Menus for Plan Tailoring (revision 1.2, DRAFT pending Rohit's sign-off)
+
+Plan tailoring (AI_COACH.md section 4) may change which exercise fills a slot, only to another exercise on that slot's menu. A menu keeps the slot's movement pattern and its exercise class (so the same rep range), and it never changes the slot's set count, the order of slots or the sequence. The first exercise on every menu is the fixed plan's exercise; with no answers, tailoring gives exactly the fixed plan. A slot with one entry is locked.
+
+Exercises named here are all in the existing library (sections 2, 3 and 3a). Approved swaps (the pain swap in each row above) are unchanged and stay the fallback when no other menu option suits.
+
+### 3-day
+
+| Slot | Pattern | Menu (fixed plan exercise first) |
+|---|---|---|
+| A1 | Quad compound | Leg Press, Goblet Squat |
+| A2 | Chest press | Machine Chest Press, Dumbbell Bench Press, Incline Machine Press |
+| A3 | Vertical pull | Lat Pulldown, Machine Pulldown |
+| A4 | Hamstring curl | Seated Leg Curl, Lying Leg Curl |
+| A5 | Triceps | Triceps Pushdown, Overhead Cable Triceps Extension |
+| B1 | Quad compound | Goblet Squat, Leg Press |
+| B2 | Row | Seated Cable Row, Chest-Supported Row, One-Arm Dumbbell Row |
+| B3 | Incline or chest press | Incline Dumbbell Press, Incline Machine Press, Dumbbell Bench Press |
+| B4 | Hip hinge | Dumbbell Romanian Deadlift (locked) |
+| B5 | Biceps | Dumbbell Bicep Curl, Cable Bicep Curl |
+| C1 | Quad isolation | Leg Extension (locked) |
+| C2 | Shoulder press | Dumbbell Shoulder Press, Machine Shoulder Press |
+| C3 | Row | Chest-Supported Row, Seated Cable Row, One-Arm Dumbbell Row |
+| C4 | Chest isolation | Machine Pec Deck, Cable Crossover |
+| C5 | Lateral raise | Cable Lateral Raise, Dumbbell Lateral Raise |
+
+### 4-day
+
+| Slot | Pattern | Menu (fixed plan exercise first) |
+|---|---|---|
+| U1-1 | Chest press | Machine Chest Press, Dumbbell Bench Press, Incline Machine Press |
+| U1-2 | Vertical pull | Lat Pulldown, Machine Pulldown |
+| U1-3 | Shoulder press | Dumbbell Shoulder Press, Machine Shoulder Press |
+| U1-4 | Triceps | Triceps Pushdown, Overhead Cable Triceps Extension |
+| U1-5 | Biceps | Dumbbell Bicep Curl, Cable Bicep Curl |
+| L1-1 | Quad compound | Leg Press, Goblet Squat |
+| L1-2 | Hip hinge | Dumbbell Romanian Deadlift (locked) |
+| L1-3 | Quad isolation | Leg Extension (locked) |
+| L1-4 | Calves | Standing Calf Raise, Seated Calf Raise, Leg Press Calf Raise |
+| U2-1 | Incline or chest press | Incline Dumbbell Press, Incline Machine Press, Dumbbell Bench Press |
+| U2-2 | Row | Seated Cable Row, Chest-Supported Row, One-Arm Dumbbell Row |
+| U2-3 | Row | Chest-Supported Row, Seated Cable Row, One-Arm Dumbbell Row |
+| U2-4 | Chest isolation | Machine Pec Deck, Cable Crossover |
+| U2-5 | Lateral raise | Cable Lateral Raise, Dumbbell Lateral Raise |
+| L2-1 | Quad compound | Goblet Squat, Leg Press |
+| L2-2 | Hamstring curl | Seated Leg Curl, Lying Leg Curl |
+| L2-3 | Glute and lower back | 45-Degree Back Extension, Machine Glute Kickback |
+| L2-4 | Calves | Seated Calf Raise, Standing Calf Raise, Leg Press Calf Raise |
+| L2-5 | Abs | Ab Crunch Machine, Cable Crunch |
+
+Rules the app checks for every tailored plan (TESTING.md section 12, T-01 to T-13):
+
+1. Every slot's exercise is on that slot's menu.
+2. No exercise appears twice in one workout.
+3. Every slot keeps its set count, order and class from the fixed plan, so weekly sets per muscle group are unchanged.
+4. Exercises the user said they avoid are absent wherever the menu has an alternative.
+5. Where equipment is marked missing, no exercise needing it is chosen wherever the menu has an alternative. A slot with no allowed option keeps its fixed-plan exercise and is shown as such.
+
+---
+
 # 4. Weekly Set Targets
 
 The programs are designed around approximately **9–12 weekly sets for major muscle groups**, with smaller muscle groups receiving direct work plus secondary stimulus from compound exercises.
@@ -194,7 +256,7 @@ Examples:
 - Seated Cable Row → Chest-Supported Row
 - Leg Press → Goblet Squat
 
-Approved swaps are fixed reference data. Claude does not choose exercises or invent swaps.
+Approved swaps are fixed reference data. Claude does not invent exercises or swaps. From revision 1.2, plan tailoring may choose among the slot menus in section 3b, and only those.
 
 ---
 

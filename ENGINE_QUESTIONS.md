@@ -1,6 +1,6 @@
 # Engine spec questions
 
-Per TESTING.md §12, a failing scenario is a spec question, not a code fix. Each question below has a red test that stays red until the spec owner decides. The expected values in the tests are copied from TESTING.md and are not edited to make the code pass.
+Per TESTING.md §13, a failing scenario is a spec question, not a code fix. Each question below has a red test that stays red until the spec owner decides. The expected values in the tests are copied from TESTING.md and are not edited to make the code pass.
 
 ## Q1. Deload after a jump: which weight does 0.90 × W use? (resolved 2026-10-08)
 

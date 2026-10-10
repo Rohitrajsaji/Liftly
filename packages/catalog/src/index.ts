@@ -2,3 +2,4 @@ export * from "./types";
 export * from "./exercises";
 export * from "./programs";
 export * from "./sequence";
+export * from "./menus";

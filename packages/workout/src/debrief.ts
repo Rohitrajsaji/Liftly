@@ -126,6 +126,9 @@ export const DEBRIEF_MAX_WORDS = 90; // [ASSUMPTION] maximum word count, as AI_C
 const FORBIDDEN =
   /\b(pain\w*|hurt\w*|sore\w*|ache\w*|injur\w*|diagnos\w*|strain\w*|sprain\w*|tendon\w*|tendin\w*|ligament\w*|inflam\w*|arthrit\w*|medic\w*|medicine\w*|doctor\w*|physio\w*|rehab\w*|therap\w*|treat\w*|supplement\w*|creatine|protein|diet|calorie\w*|lbs?|pounds?|push(ing)? through|train(ing)? through)\b/i;
 
+/** Wording no AI text may contain (diagnosis, pain, treatment, supplements, other units). Plan tailoring uses it too. */
+export const FORBIDDEN_WORDING = FORBIDDEN;
+
 /** Every number the input contains (values, and digits inside exercise names), plus counts of sets. */
 export function allowedNumbers(input: DebriefInput): Set<number> {
   const out = new Set<number>();
