@@ -2,16 +2,18 @@
 // see a progress chart and read an example summary without installing anything. Clearly marked as sample data.
 // The installed app never shows this; it only ever shows the person's own workouts.
 
-import { EFFORT_HELP, EFFORT_LABEL, formatClock, type WeightPoint } from "@liftly/workout";
+import { EFFORT_HELP, EFFORT_LABEL, formatClock, rulesPicks, tailoredProgram, type TailorAnswers, type WeightPoint } from "@liftly/workout";
 import type { Effort } from "@liftly/engine";
 import { useEffect, useState } from "react";
 import { Ring } from "../dots";
+import { EQUIPMENT_LABEL, planPreview } from "../plan";
 import { TrendChart } from "./Progress";
 
-type Tab = "log" | "progress" | "summary";
+type Tab = "log" | "progress" | "plan" | "summary";
 const TABS: readonly { readonly id: Tab; readonly label: string }[] = [
   { id: "log", label: "Log a set" },
   { id: "progress", label: "Progress" },
+  { id: "plan", label: "Your plan" },
   { id: "summary", label: "Summary" },
 ];
 
@@ -36,7 +38,7 @@ export function Demo() {
   const [tab, setTab] = useState<Tab>("log");
   return (
     <div className="flex flex-col items-center gap-5" data-demo>
-      <div className="pressed grid w-full max-w-sm grid-cols-3 gap-1 rounded-full p-1" role="tablist" aria-label="Demo">
+      <div className="pressed grid w-full max-w-sm grid-cols-4 gap-1 rounded-full p-1" role="tablist" aria-label="Demo">
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`min-h-12 rounded-full text-sm ${tab === t.id ? "raised font-medium text-accent" : "text-muted"}`}>
             {t.label}
@@ -53,6 +55,7 @@ export function Demo() {
           <div key={tab} className="screen-fade">
             {tab === "log" && <LogDemo />}
             {tab === "progress" && <ProgressDemo />}
+            {tab === "plan" && <PlanDemo />}
             {tab === "summary" && <SummaryDemo />}
           </div>
         </div>
@@ -217,6 +220,40 @@ function SummaryDemo() {
         </p>
       </div>
       <p className="text-xs text-muted">The AI only explains. Liftly's own rules decide every weight and rep, and the AI summary is optional.</p>
+    </div>
+  );
+}
+
+// A sample set of answers, run through the app's own rules on the real 3-day catalog: nothing here is made up.
+const SAMPLE_ANSWERS: TailorAnswers = { unavailable: ["cable"], preference: "free_weights", avoid: [] };
+
+function PlanDemo() {
+  const picks = rulesPicks("3-day", SAMPLE_ANSWERS).picks;
+  const fixed = planPreview("3-day").workouts[0];
+  const tailored = planPreview("3-day", tailoredProgram("3-day", picks)).workouts[0];
+  return (
+    <div className="flex flex-col gap-4" data-demo-plan>
+      <div>
+        <p className="eyebrow">Tailored for you</p>
+        <p className="mt-1 text-sm text-muted">Sample answers: no cable machines, prefers dumbbells and bodyweight.</p>
+      </div>
+      <ul className="flex flex-col divide-y divide-line">
+        {tailored?.exercises.map((e) => (
+          <li key={e.order} className="flex items-center justify-between gap-3 py-3">
+            <span>
+              <span className="block text-sm font-medium">{e.name}</span>
+              <span className="text-xs text-muted">
+                {EQUIPMENT_LABEL[e.equipment]}
+                {fixed?.exercises.find((f) => f.order === e.order)?.name !== e.name && " · Changed for you"}
+              </span>
+            </span>
+            <span className="shrink-0 text-sm tabular-nums">
+              {e.sets} × {e.reps}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted">With an account and your OK, an AI can pick between the approved options. Liftly checks its choice and sets every weight and rep.</p>
     </div>
   );
 }

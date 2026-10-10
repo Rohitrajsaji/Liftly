@@ -29,7 +29,7 @@ function typeOf(exerciseId: string): ExerciseType {
   return t;
 }
 
-/** Every exercise a program can ask for (its own and its swaps) that has no ladder yet. */
+/** Every exercise a program (the fixed one, or the tailored plan in force) can ask for, with its swaps, that has no ladder yet. */
 export function exercisesMissingLadder(programId: ProgramId, ladders: WorkoutContext["ladders"], program?: Program): string[] {
   const ids = new Set<string>();
   for (const s of (program ?? PROGRAMS[programId]).slots) for (const r of s.exercises) ids.add(r.exerciseId).add(r.swapId);

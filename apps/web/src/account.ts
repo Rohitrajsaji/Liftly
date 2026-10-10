@@ -4,18 +4,19 @@ import type { Backend, ConsentRow, ProfileRow, Session } from "./backend";
 import { CONSENT_VERSION } from "./consent";
 import type { LiftlyDb } from "./db";
 import { loadStoredProfile, saveProfile } from "./db";
-import { isOnboarded, type Profile } from "./onboarding";
+import { activeTailoring, isOnboarded, normalize, type Profile } from "./onboarding";
 import { enqueueConsent, enqueueProfile, flushOutbox, type FlushResult } from "./sync";
 import { pullRemote, queueLocalWork } from "./workoutStore";
 
 /** The profile as the server stores it, or null while any answer is missing. */
 export function toProfileRow(p: Profile, userId: string, updatedAt: string): ProfileRow | null {
   if (!isOnboarded(p) || p.monthsTraining === null || p.programId === null || p.startDate === null) return null;
-  return { user_id: userId, months_training: p.monthsTraining, program: p.programId, start_date: p.startDate, updated_at: updatedAt };
+  const tailoring = activeTailoring(p);
+  return { user_id: userId, months_training: p.monthsTraining, program: p.programId, start_date: p.startDate, ...(tailoring === null ? {} : { tailoring }), updated_at: updatedAt };
 }
 
 export function fromProfileRow(row: ProfileRow): Profile {
-  return { step: "preview", monthsTraining: row.months_training, programId: row.program, startDate: row.start_date };
+  return normalize({ step: "preview", monthsTraining: row.months_training, programId: row.program, startDate: row.start_date, ...(row.tailoring ? { tailoring: row.tailoring as NonNullable<Profile["tailoring"]> } : {}) });
 }
 
 export type Resolution = "push" | "adopt" | "nothing";

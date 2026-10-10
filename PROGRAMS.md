@@ -2,7 +2,7 @@
 
 This document defines the fixed beginner hypertrophy programs used by Liftly V1.
 
-**Revision 1.2 (2026-10-10, DRAFT, Rohit chose AI plan tailoring):** adds section 3b, the slot menus. The fixed programs above are unchanged and remain the default and the fallback. Menus await Rohit's sign-off before they are built.
+**Revision 1.2 (2026-10-10, approved by Rohit):** adds section 3b, the slot menus. The fixed programs above are unchanged and remain the default.
 
 **Revision 1.1 (2026-10-08, approved by Rohit):** swap-only exercises given full metadata (section 3a); Assisted Pull-up replaced by Machine Pulldown; Overhead Triceps Extension named Overhead Cable Triceps Extension; Upper 2 Seated Cable Row swap changed to One-Arm Dumbbell Row and Lower 1 Leg Extension swap changed to Goblet Squat, so no swap repeats an exercise in the same workout; 45-Degree Back Extension progresses by external load (section 6). See DECISIONS.md, P1 to P4.
 
@@ -144,7 +144,7 @@ One-Arm Dumbbell Row confirmed as compound, dumbbell, 8–12 (Rohit, 2026-10-08,
 
 ---
 
-# 3b. Slot Menus for Plan Tailoring (revision 1.2, DRAFT pending Rohit's sign-off)
+# 3b. Slot Menus for Plan Tailoring (revision 1.2, approved by Rohit 2026-10-10)
 
 Plan tailoring (AI_COACH.md section 4) may change which exercise fills a slot, only to another exercise on that slot's menu. A menu keeps the slot's movement pattern and its exercise class (so the same rep range), and it never changes the slot's set count, the order of slots or the sequence. The first exercise on every menu is the fixed plan's exercise; with no answers, tailoring gives exactly the fixed plan. A slot with one entry is locked.
 
@@ -194,7 +194,7 @@ Exercises named here are all in the existing library (sections 2, 3 and 3a). App
 | L2-4 | Calves | Seated Calf Raise, Standing Calf Raise, Leg Press Calf Raise |
 | L2-5 | Abs | Ab Crunch Machine, Cable Crunch |
 
-Rules the app checks for every tailored plan (TESTING.md section 12, T-01 to T-13):
+Rules the app checks for every tailored plan (TESTING.md section 12, T-01 to T-14):
 
 1. Every slot's exercise is on that slot's menu.
 2. No exercise appears twice in one workout.

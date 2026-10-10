@@ -2,7 +2,7 @@
 // commercial-gym list (Rohit, 2026-10-10) that the user can change; the engine only ever moves along the list in use,
 // and each session keeps the list it used. Loads are integer grams everywhere.
 
-import { exercise, PROGRAMS, type Equipment, type ProgramId } from "@liftly/catalog";
+import { exercise, MENUS, PROGRAMS, type Equipment, type ProgramId } from "@liftly/catalog";
 import { formatKg, kgToGrams } from "@liftly/workout";
 
 export const EQUIPMENT_ORDER: readonly Equipment[] = ["machine", "cable", "dumbbell", "bodyweight"];
@@ -10,29 +10,35 @@ export const EQUIPMENT_ORDER: readonly Equipment[] = ["machine", "cable", "dumbb
 export const MAX_LADDER_STEPS = 120;
 export const MAX_LOAD_KG = 400;
 
-/** Equipment kinds the program (its exercises and their swaps) actually uses. */
-export function equipmentInUse(programId: ProgramId): Equipment[] {
-  const used = new Set<Equipment>();
+/** Every exercise the program can ask for, in plan order: its rows, their swaps and the plan-tailoring menu options. */
+function programExerciseIds(programId: ProgramId): string[] {
+  const ids: string[] = [];
+  const add = (id: string) => {
+    if (!ids.includes(id)) ids.push(id);
+  };
   for (const s of PROGRAMS[programId].slots) {
     for (const r of s.exercises) {
-      for (const id of [r.exerciseId, r.swapId]) {
-        const e = exercise(id).equipment;
-        if (e !== null) used.add(e);
-      }
+      add(r.exerciseId);
+      add(r.swapId);
+      for (const m of MENUS[programId]) if (m.slotKey === s.key && m.order === r.order) m.options.forEach(add);
     }
+  }
+  return ids;
+}
+
+/** Equipment kinds the program (its exercises, swaps and tailoring options) actually uses. */
+export function equipmentInUse(programId: ProgramId): Equipment[] {
+  const used = new Set<Equipment>();
+  for (const id of programExerciseIds(programId)) {
+    const e = exercise(id).equipment;
+    if (e !== null) used.add(e);
   }
   return EQUIPMENT_ORDER.filter((e) => used.has(e));
 }
 
-/** The program's exercises (originals and swaps) that use this kind of equipment, in plan order, without repeats. */
+/** The program's exercises that use this kind of equipment, in plan order, without repeats. */
 export function exercisesFor(programId: ProgramId, equipment: Equipment): string[] {
-  const ids: string[] = [];
-  for (const s of PROGRAMS[programId].slots) {
-    for (const r of s.exercises) {
-      for (const id of [r.exerciseId, r.swapId]) if (exercise(id).equipment === equipment && !ids.includes(id)) ids.push(id);
-    }
-  }
-  return ids;
+  return programExerciseIds(programId).filter((id) => exercise(id).equipment === equipment);
 }
 
 export function allProgramExercises(programId: ProgramId): string[] {

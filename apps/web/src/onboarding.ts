@@ -3,6 +3,7 @@
 // Pure state transitions; the screens and the local database only call these.
 
 import type { ProgramId } from "@liftly/catalog";
+import { parseTailoredPlan, type TailoredPlan } from "@liftly/workout";
 
 export type Step = "welcome" | "experience" | "program" | "preview";
 
@@ -15,6 +16,8 @@ export interface Profile {
   readonly programId: ProgramId | null;
   /** DATA_MODEL User.start_date, YYYY-MM-DD in the user's local time. Set when the plan is first shown. */
   readonly startDate: string | null;
+  /** The tailored plan (PROGRAMS.md 3b), present only when the user chose one. Absent means the standard plan. */
+  readonly tailoring?: TailoredPlan;
 }
 
 export const NEW_PROFILE: Profile = { step: "welcome", monthsTraining: null, programId: null, startDate: null };
@@ -69,6 +72,22 @@ export function back(p: Profile): Profile {
   return { ...p, step: STEPS[Math.max(i - 1, 0)] ?? "welcome" };
 }
 
+/** The tailored plan in force: the stored one, only while it belongs to the chosen program. */
+export function activeTailoring(p: Profile): TailoredPlan | null {
+  return p.tailoring !== undefined && p.tailoring.programId === p.programId ? p.tailoring : null;
+}
+
+/** Sets or clears the tailored plan. */
+export function withTailoring(p: Profile, plan: TailoredPlan | null): Profile {
+  const { tailoring: _old, ...rest } = p;
+  return plan === null ? rest : { ...rest, tailoring: plan };
+}
+
+/** Chooses a program. A tailored plan belongs to one program, so it is dropped when the program changes. */
+export function withProgram(p: Profile, programId: ProgramId): Profile {
+  return withTailoring({ ...p, programId }, p.programId === programId ? (p.tailoring ?? null) : null);
+}
+
 /** Changing the program from the preview reopens the program step; the other answers stay. */
 export function changeProgram(p: Profile): Profile {
   return { ...p, step: "program" };
@@ -79,7 +98,8 @@ export function normalize(p: Partial<Profile> | undefined): Profile {
   const months = typeof p?.monthsTraining === "number" ? clampMonths(p.monthsTraining) : null;
   const programId = p?.programId === "3-day" || p?.programId === "4-day" ? p.programId : null;
   const startDate = typeof p?.startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.startDate) ? p.startDate : null;
-  const base: Profile = { step: "welcome", monthsTraining: months, programId, startDate };
+  const tailoring = parseTailoredPlan(p?.tailoring);
+  const base: Profile = { step: "welcome", monthsTraining: months, programId, startDate, ...(tailoring !== null && tailoring.programId === programId ? { tailoring } : {}) };
   // "goal" was a step in M4; profiles saved then continue to the preview.
   const stored: string | undefined = p?.step;
   const step: Step = stored === "goal" ? "preview" : STEPS.find((s) => s === stored) ?? "welcome";

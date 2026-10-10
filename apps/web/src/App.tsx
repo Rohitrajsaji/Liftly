@@ -1,10 +1,10 @@
-import { exerciseState, reportPain, type PainInput } from "@liftly/workout";
+import { buildTailoredPlan, exerciseState, isStandardPlan, NO_ANSWERS, reportPain, type PainInput, type TailorAnswers } from "@liftly/workout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { attachToAccount, recordConsent, syncProfileChange } from "./account";
 import type { Backend, Session } from "./backend";
 import { SUPABASE } from "./config";
 import { LiftlyDb, loadProfile, saveProfile, wipeLocalData } from "./db";
-import { back, changeProgram, isOnboarded, next, NEW_PROFILE, stampStartDate, type Profile } from "./onboarding";
+import { activeTailoring, back, changeProgram, isOnboarded, next, NEW_PROFILE, stampStartDate, withProgram, withTailoring, type Profile } from "./onboarding";
 import { Account } from "./screens/Account";
 import { Consent } from "./screens/Consent";
 import { Exercise } from "./screens/Exercise";
@@ -16,7 +16,9 @@ import { PainReport, PainResult } from "./screens/Pain";
 import { Summary } from "./screens/Summary";
 import { targetOf, Workout } from "./screens/Workout";
 import { Experience } from "./screens/Experience";
-import { Preview } from "./screens/Preview";
+import { Preview, type PreviewTailoring } from "./screens/Preview";
+import { Tailor } from "./screens/Tailor";
+import { aiFailureText, aiHasChoice, requestAiPlan, setTailorAi, tailorAiOn } from "./tailoring";
 import { ProgramChoice } from "./screens/ProgramChoice";
 import { AuthStep } from "./screens/SignIn";
 import { claudeDebriefOn, setClaudeDebrief } from "./debrief";
@@ -50,7 +52,7 @@ function markIntroSeen(seen = true): void {
 }
 
 /** Where the user is inside the app once onboarded. */
-type Screen = "home" | "progress" | "history" | "gym" | "plan" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
+type Screen = "home" | "progress" | "history" | "gym" | "plan" | "tailor" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
 
 const db = new LiftlyDb();
 const backend: Backend | null = SUPABASE === null ? null : createSupabaseBackend(SUPABASE.url, SUPABASE.key);
@@ -62,6 +64,10 @@ export function App() {
   const [pending, setPending] = useState(0);
   const online = useOnline();
   const [claudeOn, setClaudeOn] = useState(false);
+  const [tailorOn, setTailorOn] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const profileRef = useRef<Profile | null>(null);
   const backRef = useRef<(() => void) | null>(null);
   const pushed = useRef(false);
   // Motion direction for the next screen change: set just before navigating; anything unset counts as forward.
@@ -101,6 +107,7 @@ export function App() {
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     void claudeDebriefOn(db).then(setClaudeOn);
+    void tailorAiOn(db).then(setTailorOn);
   }, [session, reloadKey]);
   const [screen, setScreen] = useState<Screen | "intro" | null>(null);
   const [exIndex, setExIndex] = useState(0);
@@ -190,6 +197,7 @@ export function App() {
   const workout = useWorkout(db, profile ?? NEW_PROFILE, session, onSaved, reloadKey);
   const debriefs = useDebriefs(db, backend, claudeOn ? session : null, profile ?? NEW_PROFILE, workout.data.sessions, workout.finished, online);
 
+  profileRef.current = profile;
   if (profile === null) return null;
   /** Wraps an action that goes back, so the next screen slides in from the left. */
   const goingBack =
@@ -198,6 +206,56 @@ export function App() {
       pendingDir.current = "back";
       fn(...a);
     };
+  const tailoring = activeTailoring(profile);
+  const showTailoring = tailoring !== null && !(isStandardPlan(tailoring) && tailoring.answers.unavailable.length === 0 && tailoring.answers.preference === "none" && tailoring.answers.avoid.length === 0) ? tailoring : null;
+
+  /** Asks the AI to choose among the options the answers left. The result applies only if the plan was not changed meanwhile. */
+  const askAi = async (answers: TailorAnswers, baseCreatedAt: string) => {
+    const cur = profileRef.current;
+    if (backend === null || session === null || cur === null || cur.programId === null) return;
+    setAiBusy(true);
+    setAiNote(null);
+    const programId = cur.programId;
+    const result = await requestAiPlan(backend, programId, answers, cur.monthsTraining, new Date());
+    setAiBusy(false);
+    const latest = profileRef.current;
+    if (latest === null || activeTailoring(latest)?.createdAt !== baseCreatedAt || latest.programId !== programId) return;
+    if (result.ok) update(withTailoring(latest, result.plan));
+    else setAiNote(aiFailureText(result.reason));
+  };
+
+  const saveAnswers = (answers: TailorAnswers) => {
+    if (profile.programId === null) return;
+    const plan = buildTailoredPlan({ programId: profile.programId, answers, ai: null, createdAt: new Date().toISOString() });
+    update(withTailoring(profile, plan));
+    setAiNote(null);
+    pendingDir.current = "back";
+    setScreen("plan");
+    if (session !== null && tailorOn && aiHasChoice(profile.programId, answers)) void askAi(answers, plan.createdAt);
+  };
+
+  const previewTailoring: PreviewTailoring = {
+    plan: showTailoring,
+    locked: workout.active !== null,
+    onTailor: () => setScreen("tailor"),
+    onStandard: () => {
+      if (profile.programId === null) return;
+      update(withTailoring(profile, buildTailoredPlan({ programId: profile.programId, answers: NO_ANSWERS, ai: null, createdAt: new Date().toISOString() })));
+      setAiNote(null);
+    },
+    ai:
+      backend === null || session === null
+        ? null
+        : {
+            enabled: tailorOn,
+            hasChoice: tailoring !== null && profile.programId !== null && aiHasChoice(profile.programId, tailoring.answers),
+            busy: aiBusy,
+            note: aiNote,
+            onAsk: () => tailoring !== null && void askAi(tailoring.answers, tailoring.createdAt),
+            onEnable: () => setView("account"),
+          },
+  };
+
   const onboarded = isOnboarded(profile) && profile.step === "preview" && profile.programId !== null;
   const where: Screen | "intro" = screen ?? (workout.hasProgress || introSeen() ? "home" : "intro");
   const accountPrompt = backend !== null && session === null ? { onCreate: () => setView("consent") } : null;
@@ -225,6 +283,8 @@ export function App() {
     if (profile.step === "experience" || profile.step === "program") return () => update(back(profile));
     if (!onboarded) return null;
     switch (where) {
+      case "tailor":
+        return () => setScreen("plan");
       case "gym":
       case "plan":
       case "workout":
@@ -350,6 +410,11 @@ export function App() {
               setPending(0);
               setView("onboarding");
             }}
+            tailorOn={tailorOn}
+            onTailorAi={async (on) => {
+              await setTailorAi(db, backend, session, on, new Date());
+              setTailorOn(await tailorAiOn(db));
+            }}
             claudeOn={claudeOn}
             onClaude={async (on) => {
               await setClaudeDebrief(db, backend, session, on, new Date());
@@ -374,7 +439,7 @@ export function App() {
           <Experience initial={profile.monthsTraining} onBack={goingBack(() => update(back(profile)))} onDone={(m) => update(next({ ...profile, monthsTraining: m }))} />
         )}
         {view === "onboarding" && profile.step === "program" && (
-          <ProgramChoice initial={profile.programId} onBack={goingBack(() => update(back(profile)))} onDone={(id) => update(next({ ...profile, programId: id }))} />
+          <ProgramChoice initial={profile.programId} onBack={goingBack(() => update(back(profile)))} onDone={(id) => update(next(withProgram(profile, id)))} />
         )}
         {view === "onboarding" && onboarded && profile.programId !== null && where === "intro" && (
           <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onContinue={() => {
@@ -383,7 +448,10 @@ export function App() {
           }} />
         )}
         {view === "onboarding" && onboarded && profile.programId !== null && where === "plan" && (
-          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onBack={goingBack(() => setScreen("home"))} />
+          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} tailoring={previewTailoring} onBack={goingBack(() => setScreen("home"))} />
+        )}
+        {view === "onboarding" && onboarded && profile.programId !== null && where === "tailor" && (
+          <Tailor programId={profile.programId} initial={tailoring?.answers ?? NO_ANSWERS} onBack={goingBack(() => setScreen("plan"))} onDone={saveAnswers} />
         )}
         {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "home" && workout.finished === null && (
           <Home

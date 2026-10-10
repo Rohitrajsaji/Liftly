@@ -244,3 +244,52 @@ export function isStandardPlan(plan: TailoredPlan): boolean {
   const fixed = fixedPicks(plan.programId);
   return plan.picks.every((p) => fixed.some((f) => f.slotKey === p.slotKey && f.order === p.order && f.exerciseId === p.exerciseId));
 }
+
+/** True when a stored plan still fits the menus: every pick and swap is on its slot's menu (or is the fixed swap), no repeats in a workout. */
+export function isValidTailoredPlan(plan: TailoredPlan): boolean {
+  if (plan.programId !== "3-day" && plan.programId !== "4-day") return false;
+  const options = allowedOptions(plan.programId, NO_ANSWERS);
+  if (plan.picks.length !== options.length) return false;
+  const seen = new Set<string>();
+  for (const o of options) {
+    const p = plan.picks.find((x) => x.slotKey === o.slotKey && x.order === o.order);
+    if (p === undefined || !o.menu.includes(p.exerciseId)) return false;
+    if (p.swapId === p.exerciseId || !(o.menu.includes(p.swapId) || p.swapId === swapFor(plan.programId, o.fixedId))) return false;
+    const key = `${p.slotKey}|${p.exerciseId}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+  }
+  return true;
+}
+
+const EQUIPMENT_KINDS: readonly Equipment[] = ["machine", "cable", "dumbbell", "bodyweight"];
+
+/** Reads a plan from storage or the server. Anything that does not fit the menus gives null, which means the standard plan. */
+export function parseTailoredPlan(raw: unknown): TailoredPlan | null {
+  if (raw === null || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const a = r["answers"] as Record<string, unknown> | undefined;
+  if (a === undefined || a === null || typeof a !== "object") return null;
+  const unavailable = Array.isArray(a["unavailable"]) ? (a["unavailable"] as unknown[]).filter((x): x is Equipment => EQUIPMENT_KINDS.includes(x as Equipment)) : [];
+  const preference: Preference = a["preference"] === "machines" || a["preference"] === "free_weights" ? a["preference"] : "none";
+  const avoid = Array.isArray(a["avoid"]) ? (a["avoid"] as unknown[]).filter((x): x is string => typeof x === "string" && x in EXERCISES) : [];
+  const picks = Array.isArray(r["picks"])
+    ? (r["picks"] as Record<string, unknown>[]).map((p) => ({ slotKey: p["slotKey"] as SlotKey, order: p["order"] as number, exerciseId: p["exerciseId"] as string, swapId: p["swapId"] as string }))
+    : [];
+  const source = r["source"] === "ai" || r["source"] === "fixed" ? r["source"] : "rules";
+  const plan: TailoredPlan = {
+    programId: r["programId"] as ProgramId,
+    answers: { unavailable, preference, avoid },
+    picks,
+    source,
+    explanation: typeof r["explanation"] === "string" ? r["explanation"].slice(0, 600) : FIXED_EXPLANATION,
+    keptFixed: Array.isArray(r["keptFixed"]) ? (r["keptFixed"] as unknown[]).filter((x): x is string => typeof x === "string") : [],
+    specVersion: typeof r["specVersion"] === "string" ? r["specVersion"] : TAILOR_SPEC_VERSION,
+    createdAt: typeof r["createdAt"] === "string" ? r["createdAt"] : "",
+  };
+  try {
+    return isValidTailoredPlan(plan) ? plan : null;
+  } catch {
+    return null;
+  }
+}

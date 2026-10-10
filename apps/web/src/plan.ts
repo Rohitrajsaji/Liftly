@@ -1,7 +1,7 @@
 // The plan preview (PRD F2): the chosen program's workouts in order, straight from the frozen catalog.
 // No weights: starting weights are found in each exercise's first session (calibration).
 
-import { exercise, PROGRAMS, type Equipment, type ProgramId, type SlotKey } from "@liftly/catalog";
+import { exercise, PROGRAMS, type Equipment, type Program, type ProgramId, type SlotKey } from "@liftly/catalog";
 import { REP_RANGES } from "@liftly/engine";
 
 export interface PreviewExercise {
@@ -27,8 +27,9 @@ export interface PlanPreview {
   readonly workouts: readonly PreviewWorkout[];
 }
 
-export function planPreview(programId: ProgramId): PlanPreview {
-  const program = PROGRAMS[programId];
+/** The preview of the fixed program, or of a tailored plan's program when given. */
+export function planPreview(programId: ProgramId, tailored?: Program): PlanPreview {
+  const program = tailored ?? PROGRAMS[programId];
   const workouts = program.sequence.map((key): PreviewWorkout => {
     const slot = program.slots.find((s) => s.key === key);
     if (slot === undefined) throw new Error(`Program ${programId} has no slot ${key}`);

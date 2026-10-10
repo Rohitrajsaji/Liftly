@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "./backend";
 import type { LiftlyDb } from "./db";
 import { slot } from "@liftly/catalog";
-import { localDate, type Profile } from "./onboarding";
+import { activeTailoring, localDate, type Profile } from "./onboarding";
 import { withStandardLadders } from "./gym";
 import { loadWorkoutData, saveActive, saveEvent, saveLadders, saveSessionFinished, type WorkoutData } from "./workoutStore";
 import {
@@ -15,6 +15,7 @@ import {
   planWorkout,
   startSession,
   exercisesMissingLadder,
+  tailoredProgram,
   type PlannedExercise,
   type SessionRecord,
   type WorkoutContext,
@@ -72,12 +73,21 @@ export function useWorkout(db: LiftlyDb, profile: Profile, session: Session | nu
     void reload();
   }, [reload, reloadKey]);
 
+  const tailoring = activeTailoring(profile);
   const ctx = useMemo<WorkoutContext | null>(
-    () => (profile.programId === null || profile.startDate === null ? null : { programId: profile.programId, startDate: profile.startDate, ladders: withStandardLadders(profile.programId, data.ladders) }),
-    [profile.programId, profile.startDate, data.ladders],
+    () =>
+      profile.programId === null || profile.startDate === null
+        ? null
+        : {
+            programId: profile.programId,
+            startDate: profile.startDate,
+            ladders: withStandardLadders(profile.programId, data.ladders),
+            ...(tailoring === null ? {} : { program: tailoredProgram(tailoring.programId, tailoring.picks) }),
+          },
+    [profile.programId, profile.startDate, data.ladders, tailoring],
   );
 
-  const missingLadders = useMemo(() => (ctx === null ? [] : exercisesMissingLadder(ctx.programId, ctx.ladders)), [ctx]);
+  const missingLadders = useMemo(() => (ctx === null ? [] : exercisesMissingLadder(ctx.programId, ctx.ladders, ctx.program)), [ctx]);
 
   const [plan, planError] = useMemo((): [PlannedExercise[] | null, string | null] => {
     if (ctx === null) return [null, null];

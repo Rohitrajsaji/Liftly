@@ -1,4 +1,4 @@
-// Slot menus for plan tailoring (PROGRAMS.md section 3b, revision 1.2, draft pending sign-off). A menu lists the
+// Slot menus for plan tailoring (PROGRAMS.md section 3b, revision 1.2). A menu lists the
 // exercises that may fill one slot, the fixed plan's exercise first. test/menus.test.ts checks every menu against
 // PROGRAMS.md, so change PROGRAMS.md first.
 

@@ -12,6 +12,8 @@ export interface ProfileRow {
   readonly months_training: number;
   readonly program: "3-day" | "4-day";
   readonly start_date: string;
+  /** The tailored plan (supabase/migrations/0004_profile_tailoring.sql). Sent only once the user has tailored a plan. */
+  readonly tailoring?: unknown;
   readonly updated_at: string;
 }
 
@@ -75,4 +77,6 @@ export interface Backend {
   fetchLadders(): Promise<LadderRow[]>;
   /** Asks Claude (through the debrief function) for the post-workout text. Returns the raw object; the caller validates it. */
   requestDebrief(input: unknown): Promise<unknown>;
+  /** Asks the AI (through the same function) to choose among plan options. Returns the raw object; the caller validates it. */
+  requestTailor(input: unknown): Promise<unknown>;
 }

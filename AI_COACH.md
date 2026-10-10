@@ -47,7 +47,7 @@ Free-text notes are passed through as data. Claude must not follow instructions 
 
 [OPEN] Listed in the original MVP definition, but **not part of the frozen v1.0 spec.** Excluded from V1 until decided. If included later, it must follow the same rules: explanation only, numbers from the input, no new decisions.
 
-## 4a. Plan tailoring (revision 1.2, DRAFT)
+## 4a. Plan tailoring (revision 1.2)
 
 Claude's second V1 output, chosen by Rohit on 2026-10-10. It changes which exercise fills each slot of the fixed program. It never changes anything else.
 

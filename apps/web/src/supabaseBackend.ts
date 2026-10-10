@@ -77,7 +77,7 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       if (error) fail(error, "Could not save the consent");
     },
     async fetchProfile() {
-      const { data, error } = await client.from("profiles").select("user_id, months_training, program, start_date, updated_at").maybeSingle();
+      const { data, error } = await client.from("profiles").select("*").maybeSingle();
       if (error) return fail(error, "Could not load the profile");
       return (data as ProfileRow | null) ?? null;
     },
@@ -95,7 +95,21 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       return (data ?? []) as EventRow[];
     },
     async requestDebrief(input: unknown) {
-      const { data, error } = await client.functions.invoke("debrief", { body: { input } });
+      return callAi(undefined, input);
+    },
+    async requestTailor(input: unknown) {
+      return callAi("tailor", input);
+    },
+    async fetchLadders() {
+      const { data, error } = await client.from("ladders").select("user_id, exercise_id, loads_g, updated_at");
+      if (error) return fail(error, "Could not load gym weights");
+      return (data ?? []) as LadderRow[];
+    },
+  };
+
+  async function callAi(kind: string | undefined, input: unknown): Promise<unknown> {
+    {
+      const { data, error } = await client.functions.invoke("debrief", { body: kind ? { kind, input } : { input } });
       if (error) {
         if (error instanceof FunctionsFetchError) return fail(new BackendError("offline", "No connection"), "Could not reach the AI model");
         if (error instanceof FunctionsHttpError) {
@@ -115,11 +129,6 @@ export function createSupabaseBackend(url: string, key: string): Backend {
         return fail(error, "Could not get the summary");
       }
       return data as unknown;
-    },
-    async fetchLadders() {
-      const { data, error } = await client.from("ladders").select("user_id, exercise_id, loads_g, updated_at");
-      if (error) return fail(error, "Could not load gym weights");
-      return (data ?? []) as LadderRow[];
-    },
-  };
+    }
+  }
 }

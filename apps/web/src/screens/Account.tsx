@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DEBRIEF_CONSENT_POINTS, DEBRIEF_CONSENT_TITLE } from "../debrief";
+import { TAILOR_CONSENT_POINTS, TAILOR_CONSENT_TITLE } from "../tailoring";
 import { Button, Note, Screen } from "../ui";
 import { explain } from "./SignIn";
 
@@ -11,6 +12,8 @@ export function Account({
   onDelete,
   claudeOn,
   onClaude,
+  tailorOn,
+  onTailorAi,
 }: {
   readonly email: string;
   readonly pending: number;
@@ -19,8 +22,11 @@ export function Account({
   readonly onDelete: () => Promise<void>;
   readonly claudeOn: boolean;
   readonly onClaude: (on: boolean) => Promise<void>;
+  readonly tailorOn: boolean;
+  readonly onTailorAi: (on: boolean) => Promise<void>;
 }) {
   const [asking, setAsking] = useState(false);
+  const [askingTailor, setAskingTailor] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +113,48 @@ export function Account({
               <p className="text-base text-muted">Off. Workouts are summarised with fixed text and nothing is sent to an AI model.</p>
               <Button variant="secondary" onClick={() => setAsking(true)}>
                 Turn on…
+              </Button>
+            </>
+          )}
+        </section>
+      )}
+      {!confirming && (
+        <section className="card flex flex-col gap-3 p-4" aria-label={TAILOR_CONSENT_TITLE}>
+          <p className="text-base font-medium">{TAILOR_CONSENT_TITLE}</p>
+          {tailorOn ? (
+            <>
+              <p className="text-base text-muted">On. When you tailor your plan, an AI model can choose between approved exercise options. Liftly checks its choice and sets every weight.</p>
+              <Button variant="secondary" disabled={busy} onClick={() => void run(() => onTailorAi(false))}>
+                Stop AI tailoring
+              </Button>
+            </>
+          ) : askingTailor ? (
+            <>
+              <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-muted marker:text-accent">
+                {TAILOR_CONSENT_POINTS.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+              <Button
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    await onTailorAi(true);
+                    setAskingTailor(false);
+                  })
+                }
+              >
+                I agree, allow AI tailoring
+              </Button>
+              <Button variant="secondary" disabled={busy} onClick={() => setAskingTailor(false)}>
+                Not now
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-base text-muted">Off. Your plan follows your answers with Liftly's own rules, and nothing is sent to an AI model.</p>
+              <Button variant="secondary" onClick={() => setAskingTailor(true)}>
+                Allow AI tailoring…
               </Button>
             </>
           )}

@@ -12,6 +12,8 @@ import {
   FIXED_EXPLANATION,
   fixedPicks,
   isStandardPlan,
+  isValidTailoredPlan,
+  parseTailoredPlan,
   NO_ANSWERS,
   planWorkout,
   reportPain,
@@ -157,6 +159,18 @@ describe("plan tailoring (TESTING.md section 12)", () => {
     const input = tailorInput("3-day", answers({ preference: "free_weights" }), 3);
     expect(Object.keys(input).sort()).toEqual(["months_training", "preference", "program_days", "slots"]);
     expect(input.slots.every((s) => s.options.length > 1)).toBe(true);
+  });
+
+  it("T-14: a stored plan is used only while it still fits the menus", () => {
+    const plan = buildTailoredPlan({ programId: "3-day", answers: answers({ preference: "free_weights" }), ai: null, createdAt: NOW });
+    expect(isValidTailoredPlan(plan)).toBe(true);
+    expect(parseTailoredPlan(JSON.parse(JSON.stringify(plan)))).toEqual(plan);
+    const off = { ...plan, picks: plan.picks.map((p, i) => (i === 0 ? { ...p, exerciseId: "lat_pulldown" } : p)) };
+    expect(parseTailoredPlan(off)).toBeNull();
+    const twice = { ...plan, picks: plan.picks.map((p) => (p.slotKey === "A" && p.order === 2 ? { ...p, exerciseId: "leg_press" } : p)) };
+    expect(parseTailoredPlan(twice)).toBeNull();
+    expect(parseTailoredPlan({ programId: "3-day" })).toBeNull();
+    expect(parseTailoredPlan(null)).toBeNull();
   });
 
   it("T-10: every tailored slot keeps its set count, order and exercise class", () => {

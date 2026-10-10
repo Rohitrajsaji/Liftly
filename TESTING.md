@@ -168,6 +168,7 @@ Interpretation used (PROGRESSION_ENGINE.md section 7): compare the current sessi
 | T-11 | Re-tailor after workouts | An exercise still in the plan keeps its history and progression. A new exercise starts calibration. |
 | T-12 | Plan changes after a session | The session's stored decisions still replay against the plan version it used. |
 | T-13 | Pain on a tailored exercise | The plan's swap is used with the fixed pain text. Engine pain rules unchanged. |
+| T-14 | A stored or downloaded plan no longer fits the menus (an exercise off its menu, a repeat in a workout) | It is ignored and the standard plan is used. |
 
 ## 13. Test execution
 

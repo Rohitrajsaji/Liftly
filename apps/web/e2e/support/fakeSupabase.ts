@@ -10,6 +10,7 @@ interface Profile {
   months_training: number;
   program: string;
   start_date: string;
+  tailoring?: unknown;
   updated_at: string;
 }
 interface Consent {
@@ -48,6 +49,9 @@ export class FakeSupabase {
   /** The debrief function: "ok" returns a valid summary, "invalid" an unusable one, "down" a server error. */
   debriefMode: "ok" | "invalid" | "down" | "limited" = "ok";
   debriefCalls = 0;
+  /** The tailor kind of the same function: "ok" picks the last allowed option per slot, "invalid" an unusable pick, "down" a server error. */
+  tailorMode: "ok" | "invalid" | "down" = "ok";
+  tailorCalls = 0;
   rpcCalls: string[] = [];
   /** When true every request fails like a dropped connection. */
   offline = false;
@@ -157,6 +161,25 @@ export class FakeSupabase {
       return id === null ? this.json(route, 401, { code: 401, msg: "invalid JWT" }) : this.json(route, 200, this.session(id).user);
     }
     if (path === "/auth/v1/logout") return this.json(route, 204, null);
+
+    if (path === "/functions/v1/debrief" && body()["kind"] === "tailor") {
+      const userId = this.userFrom(route);
+      if (userId === null) return this.json(route, 401, { error: "sign in" });
+      if (![...this.consents.values()].some((c) => c.user_id === userId && c.consent_version === "ai-tailor-draft-1")) return this.json(route, 403, { error: "consent" });
+      this.tailorCalls += 1;
+      if (this.tailorMode === "down") return this.json(route, 502, { error: "upstream" });
+      if (this.tailorMode === "invalid") return this.json(route, 200, { picks: [{ slot_key: "A", order: 1, exercise_id: "not-an-exercise" }], explanation_text: "Nope." });
+      const input = (body()["input"] ?? {}) as { slots?: { slot_key: string; order: number; options: { id: string }[] }[] };
+      const used = new Map<string, Set<string>>();
+      const picks = (input.slots ?? []).map((sl) => {
+        const taken = used.get(sl.slot_key) ?? new Set<string>();
+        const opt = [...sl.options].reverse().find((o) => !taken.has(o.id)) ?? sl.options[0];
+        taken.add(opt?.id ?? "");
+        used.set(sl.slot_key, taken);
+        return { slot_key: sl.slot_key, order: sl.order, exercise_id: opt?.id };
+      });
+      return this.json(route, 200, { picks, explanation_text: "I leaned toward the options that match your preference and kept each workout varied." });
+    }
 
     if (path === "/functions/v1/debrief") {
       const userId = this.userFrom(route);

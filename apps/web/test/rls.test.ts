@@ -6,7 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const migration = (name: string) => readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", name), "utf8");
-const MIGRATIONS = ["0001_accounts.sql", "0002_workouts.sql", "0003_debrief_log.sql"].map(migration);
+const MIGRATIONS = ["0001_accounts.sql", "0002_workouts.sql", "0003_debrief_log.sql", "0004_profile_tailoring.sql"].map(migration);
 
 const ALICE = "11111111-1111-1111-1111-111111111111";
 const BOB = "22222222-2222-2222-2222-222222222222";
@@ -199,5 +199,23 @@ describe("debrief_log (M8 request cap)", () => {
     await expect(as(DAN, "update public.debrief_log set created_at = now()")).rejects.toThrow(/permission denied/);
     await expect(as(DAN, "delete from public.debrief_log")).rejects.toThrow(/permission denied/);
     await expect(as(null, "select * from public.debrief_log")).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("profile tailoring (plan tailoring column)", () => {
+  const FAY = "66666666-6666-6666-6666-666666666666";
+  const GUS = "77777777-7777-7777-7777-777777777777";
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users values ('${FAY}'), ('${GUS}')`);
+    await as(FAY, profileSql, [FAY, "2026-10-08T10:00:00Z"]);
+  });
+  it("a user saves their own plan and nobody else can read it", async () => {
+    await as(FAY, "update public.profiles set tailoring = '{\"programId\":\"3-day\"}'::jsonb, updated_at = '2026-10-09T10:00:00Z'");
+    expect(await as(FAY, "select tailoring->>'programId' as p from public.profiles")).toEqual([{ p: "3-day" }]);
+    expect(await as(GUS, "select * from public.profiles")).toEqual([]);
+  });
+  it("only a small JSON object is accepted", async () => {
+    await expect(as(FAY, "update public.profiles set tailoring = '[1]'::jsonb")).rejects.toThrow(/check constraint/);
+    await expect(as(FAY, "update public.profiles set tailoring = $1::jsonb", [JSON.stringify({ x: "a".repeat(9000) })])).rejects.toThrow(/check constraint/);
   });
 });

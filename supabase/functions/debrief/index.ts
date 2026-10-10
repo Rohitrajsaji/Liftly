@@ -1,6 +1,8 @@
-// Supabase Edge Function: writes the post-workout debrief with an AI model through OpenRouter (AI_COACH.md). It runs on
-// Supabase, so the OpenRouter key (the secret OPENROUTER_API_KEY) never reaches the app. The app sends the input block and validates
-// what comes back; this function only forwards it, caps requests per account, and never stores or logs workout data.
+// Supabase Edge Function: the app's two AI tasks, through OpenRouter (AI_COACH.md): the post-workout debrief (default) and
+// plan tailoring ({ kind: "tailor" }, AI_COACH.md 4a). It runs on Supabase, so the OpenRouter key (the secret
+// OPENROUTER_API_KEY) never reaches the app. The app sends the input block and validates what comes back; this function
+// only forwards it, checks the matching consent, caps requests per account (both tasks share one cap), and never stores or
+// logs workout data.
 //
 // Deploy: see SUPABASE_SETUP.md ("AI summaries"). Needs the secret OPENROUTER_API_KEY. Optional DEBRIEF_MODEL.
 
@@ -14,8 +16,9 @@ const MODELS = (Deno.env.get("DEBRIEF_MODELS") ?? Deno.env.get("DEBRIEF_MODEL") 
   .map((m) => m.trim())
   .filter((m) => m !== "");
 const DAILY_CAP = 20;
-// Must match DEBRIEF_CONSENT_VERSION in apps/web/src/debrief.ts: the user has to have accepted exactly this text.
-const CONSENT_VERSION = "ai-debrief-draft-2";
+// Must match DEBRIEF_CONSENT_VERSION in apps/web/src/debrief.ts and TAILOR_CONSENT_VERSION in apps/web/src/tailoring.ts:
+// the user has to have accepted exactly that text for the task they ask for.
+const CONSENT_VERSIONS = { debrief: "ai-debrief-draft-2", tailor: "ai-tailor-draft-1" } as const;
 const MAX_BODY_BYTES = 20_000;
 const TIMEOUT_MS = 18_000; // per model call
 const BUDGET_MS = 55_000; // all attempts together, so the app is never kept waiting longer than this
@@ -38,6 +41,20 @@ Hard rules:
 - If the data is incomplete or inconsistent, say so briefly instead of guessing.
 Reply with ONLY one JSON object, no other text and no markdown, with exactly these fields:
 {"debrief_text": string, "reason_codes_cited": string[], "numbers_cited": number[], "contains_pain_guidance": false, "units": "kg"}`;
+
+const TAILOR_PROMPT = `You choose exercises for a beginner's gym plan in the Liftly app. The app has already worked out every list of allowed options. You only choose among them and explain.
+
+The input is JSON: program_days, months_training, preference ("none", "machines" or "free_weights"), and slots. Each slot has slot_key (the workout), order, and options (id, name, equipment).
+
+For every slot choose exactly one option and give its id. Rules:
+- Only choose an id listed in that slot's options.
+- Never choose the same id twice within one slot_key (one workout).
+- "machines" means favour machine and cable options. "free_weights" means favour dumbbell and bodyweight options. When no option fits the preference, take the first option.
+- Never choose, change or suggest weights, reps, sets or progression. The app's engine decides those.
+
+Then write explanation_text: two or three short sentences in plain, friendly language saying what you chose and why. Name only exercises that appear in the options. Do not write any digits or numbers. Do not mention pain, injury, soreness, medical, nutrition, supplement or medication topics.
+Reply with ONLY one JSON object, no other text and no markdown, with exactly these fields:
+{"picks": [{"slot_key": string, "order": number, "exercise_id": string}], "explanation_text": string}`;
 
 /** Every number in the input block, so the model can be told exactly which figures it may write. */
 function numbersIn(value: unknown, out: Set<number> = new Set()): Set<number> {
@@ -76,18 +93,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const { data: who } = await supabase.auth.getUser();
   if (who.user === null || who.user === undefined) return reply(401, { error: "sign in" });
 
-  const consent = await supabase.from("consents").select("id").eq("consent_version", CONSENT_VERSION).limit(1);
-  if (consent.error !== null || (consent.data ?? []).length === 0) return reply(403, { error: "consent" });
-
   const text = await req.text();
   if (text.length > MAX_BODY_BYTES) return reply(413, { error: "too large" });
   let input: unknown;
+  let kind: keyof typeof CONSENT_VERSIONS = "debrief";
   try {
-    input = (JSON.parse(text) as { input?: unknown }).input;
+    const body = JSON.parse(text) as { input?: unknown; kind?: unknown };
+    input = body.input;
+    if (body.kind === "tailor") kind = "tailor";
   } catch {
     return reply(400, { error: "bad json" });
   }
   if (input === null || typeof input !== "object") return reply(400, { error: "no input" });
+
+  const consent = await supabase.from("consents").select("id").eq("consent_version", CONSENT_VERSIONS[kind]).limit(1);
+  if (consent.error !== null || (consent.data ?? []).length === 0) return reply(403, { error: "consent" });
 
   const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
   const { count } = await supabase.from("debrief_log").select("id", { count: "exact", head: true }).gte("created_at", since);
@@ -117,8 +137,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           // No hidden reasoning: it is what made earlier models time out. Ignored by models that don't reason.
           reasoning: { enabled: false },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `Input block (JSON):\n${JSON.stringify(input)}\n\nThe only numbers you may write: ${allowed}.` },
+            { role: "system", content: kind === "tailor" ? TAILOR_PROMPT : SYSTEM_PROMPT },
+            { role: "user", content: kind === "tailor" ? `Input (JSON):\n${JSON.stringify(input)}` : `Input block (JSON):\n${JSON.stringify(input)}\n\nThe only numbers you may write: ${allowed}.` },
           ],
         }),
       });
