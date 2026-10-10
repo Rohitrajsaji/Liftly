@@ -78,7 +78,7 @@ describe("plan tailoring (TESTING.md section 12)", () => {
   });
 
   it("T-04: preferring free weights picks a dumbbell option wherever one is allowed, and machines the other way", () => {
-    for (const [preference, kinds] of [["free_weights", ["dumbbell", "bodyweight"]], ["machines", ["machine", "cable"]]] as const) {
+    for (const [preference, kinds] of [["free_weights", ["dumbbell", "bodyweight"]], ["machines", ["machine", "cable"]]] as [TailorAnswers["preference"], Equipment[]][]) {
       const a = answers({ preference });
       const r = rulesPicks("3-day", a);
       for (const o of allowedOptions("3-day", a)) {
