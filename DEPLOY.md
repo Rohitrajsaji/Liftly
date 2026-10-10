@@ -20,6 +20,10 @@ In Vercel: Project → Settings → Domains → add `liftly.space` (and `www.lif
 
 The Content-Security-Policy in `vercel.json` only allows the app's own files and `https://*.supabase.co`. If you ever add another service (analytics, a custom Supabase domain), add its address to `connect-src`.
 
+## What visitors see
+
+Opened in a normal browser (desktop or phone), `liftly.space` is a website that explains Liftly and how to add it to a phone. Only the installed home-screen app loads the app itself. The page has a small "Use in browser instead" link so you can test on a computer (it remembers the choice on that device; `?app=1` does the same once). Delete the `data-use-in-browser` button in `apps/web/src/screens/Landing.tsx` if you don't want that link.
+
 ## 4. After the first deploy: smoke test
 
 On a phone: create an account, finish onboarding, set gym weights, log a workout, finish it, reload the page (everything should still be there), turn on airplane mode and log another workout, then go back online (it should sync). Then try `pnpm --filter @liftly/web smoke` from a machine that can reach Supabase.
