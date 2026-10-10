@@ -97,10 +97,10 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     async requestDebrief(input: unknown) {
       const { data, error } = await client.functions.invoke("debrief", { body: { input } });
       if (error) {
-        if (error instanceof FunctionsFetchError) return fail(new BackendError("offline", "No connection"), "Could not reach Claude");
+        if (error instanceof FunctionsFetchError) return fail(new BackendError("offline", "No connection"), "Could not reach the AI model");
         if (error instanceof FunctionsHttpError) {
           const status = (error.context as Response).status;
-          if (status === 403) return fail(new BackendError("consent_required", "Claude summaries are not turned on"), "Not allowed");
+          if (status === 403) return fail(new BackendError("consent_required", "AI summaries are not turned on"), "Not allowed");
           if (status === 429) return fail(new BackendError("rate_limited", "Too many requests"), "Too many requests");
         }
         return fail(error, "Could not get the summary");

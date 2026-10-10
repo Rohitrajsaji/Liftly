@@ -161,7 +161,7 @@ export class FakeSupabase {
     if (path === "/functions/v1/debrief") {
       const userId = this.userFrom(route);
       if (userId === null) return this.json(route, 401, { error: "sign in" });
-      if (![...this.consents.values()].some((c) => c.user_id === userId && c.consent_version === "claude-debrief-draft-1")) return this.json(route, 403, { error: "consent" });
+      if (![...this.consents.values()].some((c) => c.user_id === userId && c.consent_version === "ai-debrief-draft-2")) return this.json(route, 403, { error: "consent" });
       this.debriefCalls += 1;
       if (this.debriefMode === "down") return this.json(route, 502, { error: "upstream" });
       const input = (body()["input"] ?? {}) as { profile?: { sessionNumber?: number } };

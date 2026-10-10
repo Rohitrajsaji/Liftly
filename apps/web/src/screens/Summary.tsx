@@ -12,7 +12,7 @@ export function DebriefCard({ record, waiting }: { readonly record: DebriefRecor
   if (record === undefined) return null;
   return (
     <section className="card-accent p-4" aria-label="Workout summary" data-debrief={waiting ? "waiting" : record.source}>
-      <p className="eyebrow">{record.source === "claude" ? "Summary by Claude" : "Summary"}</p>
+      <p className="eyebrow">{record.source === "claude" ? "Summary by AI" : "Summary"}</p>
       <p className="mt-1 text-base" role="status">
         {waiting ? "Writing your summary…" : record.text}
       </p>

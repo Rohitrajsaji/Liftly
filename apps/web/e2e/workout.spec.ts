@@ -268,7 +268,7 @@ test.describe("Claude summary (M8)", () => {
     await page.getByRole("button", { name: "Turn on…" }).click();
     await expect(page.getByText("No name, email or phone number is sent.")).toBeVisible();
     await page.getByRole("button", { name: "I agree, turn on" }).click();
-    await expect(page.getByText("On. After each workout Claude writes")).toBeVisible();
+    await expect(page.getByText("On. After each workout an AI model writes")).toBeVisible();
     await page.getByRole("button", { name: "Back" }).click();
   };
   const finishOne = async (page: Page) => {
@@ -291,7 +291,7 @@ test.describe("Claude summary (M8)", () => {
   test("turned on: Claude's checked text replaces the fixed one, and History keeps it", async ({ page, context }) => {
     const fake = await signedIn(page, context);
     await turnOn(page);
-    expect([...fake.consents.values()].map((c) => c.consent_version)).toContain("claude-debrief-draft-1");
+    expect([...fake.consents.values()].map((c) => c.consent_version)).toContain("ai-debrief-draft-2");
     await finishOne(page);
     await expect(page.locator("[data-debrief=claude]")).toContainText("You finished session 1 of your plan.");
     expect(fake.debriefCalls).toBe(1);

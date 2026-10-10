@@ -9,15 +9,16 @@ import type { DebriefRecord, LiftlyDb } from "./db";
 import { enqueueConsent, flushOutbox } from "./sync";
 
 /** Separate from the account consent: sending workout data to Claude is optional and off until the user turns it on. */
-export const DEBRIEF_CONSENT_VERSION = "claude-debrief-draft-1";
+export const DEBRIEF_CONSENT_VERSION = "ai-debrief-draft-2";
 
-export const DEBRIEF_CONSENT_TITLE = "Claude workout summaries";
+export const DEBRIEF_CONSENT_TITLE = "AI workout summaries";
 
 // DRAFT wording, like consent.ts: not legal advice, and SAFETY.md section 6 still lists a legal review as open.
 export const DEBRIEF_CONSENT_POINTS: readonly string[] = [
-  "After each workout, Claude (made by Anthropic) can write a short summary of it. This is optional and off until you turn it on.",
-  "To do that, Liftly sends Claude that workout's exercises, weights, reps and effort, your last few sessions, your months of training, and for any pain you reported only the exercise and a mild, moderate or high label. No name, email or phone number is sent.",
-  "Claude only explains. Liftly's own rules decide every weight and rep, and Claude's text is checked before you see it. If it can't be used, a fixed summary is shown instead.",
+  "After each workout, an AI model can write a short summary of it. This is optional and off until you turn it on.",
+  "To do that, Liftly sends that workout's exercises, weights, reps and effort, your last few sessions, your months of training, and for any pain you reported only the exercise and a mild, moderate or high label. No name, email or phone number is sent.",
+  "The model is a free one run by a third party, reached through OpenRouter. Free models may keep what they are sent and may use it to improve themselves, so leave this off if you'd rather your workout details stay private.",
+  "The AI only explains. Liftly's own rules decide every weight and rep, and its text is checked before you see it. If it can't be used, a fixed summary is shown instead.",
   "You can turn this off at any time from the Account screen. Turning it off stops new workouts being sent.",
 ];
 

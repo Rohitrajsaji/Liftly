@@ -75,7 +75,7 @@ export function Account({
           <p className="text-base font-medium">{DEBRIEF_CONSENT_TITLE}</p>
           {claudeOn ? (
             <>
-              <p className="text-base text-muted">On. After each workout Claude writes a short summary. Liftly's own rules still decide every weight.</p>
+              <p className="text-base text-muted">On. After each workout an AI model writes a short summary. Liftly's own rules still decide every weight.</p>
               <Button variant="secondary" disabled={busy} onClick={() => void run(() => onClaude(false))}>
                 Turn off
               </Button>
@@ -104,7 +104,7 @@ export function Account({
             </>
           ) : (
             <>
-              <p className="text-base text-muted">Off. Workouts are summarised with fixed text and nothing is sent to Claude.</p>
+              <p className="text-base text-muted">Off. Workouts are summarised with fixed text and nothing is sent to an AI model.</p>
               <Button variant="secondary" onClick={() => setAsking(true)}>
                 Turn on…
               </Button>
