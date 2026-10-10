@@ -6,6 +6,7 @@ import type { Session } from "./backend";
 import type { LiftlyDb } from "./db";
 import { slot } from "@liftly/catalog";
 import { localDate, type Profile } from "./onboarding";
+import { withStandardLadders } from "./gym";
 import { loadWorkoutData, saveActive, saveEvent, saveLadders, saveSessionFinished, type WorkoutData } from "./workoutStore";
 import {
   EMPTY_STATE,
@@ -72,7 +73,7 @@ export function useWorkout(db: LiftlyDb, profile: Profile, session: Session | nu
   }, [reload, reloadKey]);
 
   const ctx = useMemo<WorkoutContext | null>(
-    () => (profile.programId === null || profile.startDate === null ? null : { programId: profile.programId, startDate: profile.startDate, ladders: data.ladders }),
+    () => (profile.programId === null || profile.startDate === null ? null : { programId: profile.programId, startDate: profile.startDate, ladders: withStandardLadders(profile.programId, data.ladders) }),
     [profile.programId, profile.startDate, data.ladders],
   );
 

@@ -20,12 +20,14 @@ const RANGES: Record<string, [string, string, string]> = {
   bodyweight: ["5", "40", "5"],
 };
 
+/** Replaces the standard gym weights with the test's own lists, so expected weights stay fixed. */
 async function setupGym(page: Page) {
-  await page.getByRole("button", { name: "Set your gym's weights" }).click();
+  await page.getByRole("button", { name: "Gym weights" }).click();
   for (const kind of ["machine", "cable", "dumbbell", "bodyweight"]) {
     const card = page.locator(`[data-equipment=${kind}]`);
     if ((await card.count()) === 0) continue;
-    await card.getByRole("button", { name: /^(Add|Edit)$/ }).click();
+    await card.getByRole("button", { name: "Edit", exact: true }).click();
+    await page.getByRole("button", { name: "Clear list" }).click();
     const [from, to, step] = RANGES[kind] ?? ["10", "20", "5"];
     await page.getByLabel("Start (kg)").fill(from);
     await page.getByLabel("End (kg)").fill(to);
@@ -55,16 +57,18 @@ test("first run shows a getting-started guide that ticks off as you go and disap
   const guide = page.locator("[data-getting-started]");
   await expect(guide).toBeVisible();
   await expect(guide.locator("[data-step=done]")).toHaveCount(1);
-  await setupGym(page);
-  await expect(guide.locator("[data-step=done]")).toHaveCount(2);
+  await expect(guide).not.toContainText("gym's weights");
   await quickWorkout(page);
   await expect(guide).toHaveCount(0);
 });
 
-test("first run: gym weights are needed, then today's workout shows calibration for every exercise", async ({ page }) => {
+test("first run: standard gym weights are ready, so today's workout shows calibration for every exercise at once", async ({ page }) => {
   await onboard(page);
-  await expect(page.getByRole("button", { name: "Start workout" })).toHaveCount(0);
-  await setupGym(page);
+  await expect(page.getByRole("button", { name: "Start workout" })).toBeEnabled();
+  await page.getByRole("button", { name: "Gym weights" }).click();
+  await expect(page.locator("[data-equipment=dumbbell] [data-standard]")).toBeVisible();
+  await expect(page.locator("[data-equipment=dumbbell] [data-ladder]")).toHaveText("2.5 to 50 kg, every 2.5 kg");
+  await page.getByRole("button", { name: "Done" }).click();
   await expect(page.locator("[data-screen-title]")).toHaveText("Workout A");
   const rows = page.locator("[data-exercise-row]");
   await expect(rows).toHaveCount(5);

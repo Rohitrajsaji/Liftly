@@ -43,6 +43,7 @@ Node 22 and pnpm 10. From the repository root:
 - Database changes are new files in `supabase/migrations/`; `apps/web/test/rls.test.ts` runs them in an in-process Postgres and checks the privacy rules.
 - Theme: soft neumorphic UI (Rohit, 2026-10-08): light grey surfaces lifted (`.raised`, `.card`) or pressed (`.pressed`) by a light and dark shadow, Poppins (self-hosted via @fontsource, so it works offline), orange accent, dark text, no dark mode. Colours are tokens in `src/styles.css`; `test/theme.test.ts` enforces 4.5:1 contrast. Headings and card text are deliberately small and medium-weight; keep touch targets large instead.
 - Site vs app (Rohit, 2026-10-10): in a normal browser `liftly.space` shows the website (`src/screens/Landing.tsx`: what it is, how to use it, install steps for iPhone and Android); only the installed home-screen app (standalone display mode, `src/mode.ts`) loads the app. A small "Use in browser instead" link (and `?app=1`) opens the app in a browser for testing; the e2e build opens the app directly and `?site=1` shows the website.
+- Gym weights (Rohit, 2026-10-10, DECISIONS P6): exercises use standard lists (`STANDARD_LADDERS` in `src/gym.ts`) until the user saves their own; no setup step blocks the first workout.
 - Controls are at least 48 px tall and the layout must not scroll sideways at phone width (`e2e/onboarding.spec.ts` checks both).
 
 ## How the spec is organized

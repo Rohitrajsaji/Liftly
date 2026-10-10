@@ -95,7 +95,6 @@ export function Home({
           <p className="text-base font-medium">Getting started</p>
           <ol className="mt-3 flex flex-col gap-3 text-base">
             <Step done label="Your plan is ready" />
-            <Step done={start.gymDone} label="Set your gym's weights" hint={start.gymDone ? undefined : "One minute, once. Liftly only suggests weights your gym really has."} />
             <Step done={false} label="Do your first workout" hint="Start light. Liftly finds your starting weights as you go." />
             {start.accountAvailable && (
               <Step done={start.accountDone} label="Save your progress with an account" hint="Optional. Keeps your workouts safe if you change phone." action={start.accountDone ? undefined : { label: "Create account", onClick: start.onAccount }} />

@@ -31,6 +31,24 @@ import { LinkButton, MotionContext, type MotionDir } from "./ui";
 import { exerciseName as exerciseNameOf } from "./gym";
 
 type View = "onboarding" | "consent" | "auth" | "account";
+// Gym setup used to mark the plan intro as done; with standard gym weights nothing is saved, so remember it here.
+const INTRO_KEY = "liftly.introSeen";
+function introSeen(): boolean {
+  try {
+    return localStorage.getItem(INTRO_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function markIntroSeen(seen = true): void {
+  try {
+    if (seen) localStorage.setItem(INTRO_KEY, "1");
+    else localStorage.removeItem(INTRO_KEY);
+  } catch {
+    // Private mode: the intro shows again after a reload, which is harmless.
+  }
+}
+
 /** Where the user is inside the app once onboarded. */
 type Screen = "home" | "progress" | "history" | "gym" | "plan" | "workout" | "exercise" | "pain" | "pain_result" | "summary";
 
@@ -181,7 +199,7 @@ export function App() {
       fn(...a);
     };
   const onboarded = isOnboarded(profile) && profile.step === "preview" && profile.programId !== null;
-  const where: Screen | "intro" = screen ?? (workout.hasProgress ? "home" : "intro");
+  const where: Screen | "intro" = screen ?? (workout.hasProgress || introSeen() ? "home" : "intro");
   const accountPrompt = backend !== null && session === null ? { onCreate: () => setView("consent") } : null;
   const nextOpen = (from: number): number | null => {
     const list = workout.active?.exercises ?? [];
@@ -341,6 +359,7 @@ export function App() {
             onDelete={async () => {
               await backend.deleteAccount();
               await wipeLocalData(db);
+              markIntroSeen(false);
               setSession(null);
               setPending(0);
               setProfile(NEW_PROFILE);
@@ -358,7 +377,10 @@ export function App() {
           <ProgramChoice initial={profile.programId} onBack={goingBack(() => update(back(profile)))} onDone={(id) => update(next({ ...profile, programId: id }))} />
         )}
         {view === "onboarding" && onboarded && profile.programId !== null && where === "intro" && (
-          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onContinue={() => setScreen("home")} />
+          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onContinue={() => {
+            markIntroSeen();
+            setScreen("home");
+          }} />
         )}
         {view === "onboarding" && onboarded && profile.programId !== null && where === "plan" && (
           <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onBack={goingBack(() => setScreen("home"))} />

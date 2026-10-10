@@ -4,9 +4,9 @@
 import type { Equipment, ProgramId } from "@liftly/catalog";
 import { formatKg } from "@liftly/workout";
 import { useState } from "react";
-import { EQUIPMENT_HELP, equipmentInUse, exerciseName, exercisesFor, ladderProblem, LADDER_PROBLEM_TEXT, mergeLadder, parseKg, rangeOf, startingLadder } from "../gym";
+import { EQUIPMENT_HELP, equipmentInUse, exerciseName, exercisesFor, ladderProblem, LADDER_PROBLEM_TEXT, mergeLadder, parseKg, rangeOf, STANDARD_LADDERS, startingLadder } from "../gym";
 import { EQUIPMENT_LABEL } from "../plan";
-import { Button, Note, Screen } from "../ui";
+import { Button, LinkButton, Note, Screen } from "../ui";
 
 type Target = { readonly kind: "equipment"; readonly equipment: Equipment } | { readonly kind: "exercise"; readonly exerciseId: string; readonly equipment: Equipment };
 
@@ -23,10 +23,11 @@ export interface GymSetupProps {
 export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }: GymSetupProps) {
   const [target, setTarget] = useState<Target | null>(null);
   const kinds = equipmentInUse(programId);
-  const ladderOfKind = (e: Equipment): readonly number[] => {
+  const savedOfKind = (e: Equipment): readonly number[] => {
     const ids = exercisesFor(programId, e).filter((id) => !custom.includes(id));
     return ladders[ids.find((id) => (ladders[id]?.length ?? 0) > 0) ?? ""] ?? [];
   };
+  const ladderOfKind = (e: Equipment): readonly number[] => (savedOfKind(e).length > 0 ? savedOfKind(e) : STANDARD_LADDERS[e]);
 
   if (target !== null) {
     const ids = target.kind === "equipment" ? exercisesFor(programId, target.equipment).filter((id) => !custom.includes(id)) : [target.exerciseId];
@@ -45,17 +46,9 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
     );
   }
 
-  const missing = kinds.filter((k) => ladderOfKind(k).length === 0 && exercisesFor(programId, k).some((id) => (ladders[id]?.length ?? 0) === 0));
   return (
-    <Screen
-      title="Your gym's weights"
-      actions={
-        <Button onClick={onDone} disabled={missing.length > 0}>
-          {missing.length > 0 ? "Add weights for each kind first" : "Done"}
-        </Button>
-      }
-    >
-      <p className="text-base text-muted">List the weights your gym has. Liftly only ever suggests a weight from your list.</p>
+    <Screen title="Your gym's weights" actions={<Button onClick={onDone}>Done</Button>}>
+      <p className="text-base text-muted">Liftly starts with the weights most gyms have. If yours are different, change a list and Liftly will only suggest weights from it.</p>
       {locked && <Note>You have a workout in progress. It keeps the weights it started with; changes apply from your next workout.</Note>}
       <ul className="flex flex-col gap-3" aria-label="Equipment">
         {kinds.map((k) => {
@@ -64,15 +57,18 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
             <li key={k} className="card p-4" data-equipment={k}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">{EQUIPMENT_LABEL[k]}</h2>
+                  <h2 className="flex items-center gap-2 text-lg font-semibold">
+                    {EQUIPMENT_LABEL[k]}
+                    {savedOfKind(k).length === 0 && <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent" data-standard>Standard</span>}
+                  </h2>
                   <p className="text-sm text-muted">{EQUIPMENT_HELP[k]}</p>
                 </div>
                 <button type="button" onClick={() => setTarget({ kind: "equipment", equipment: k })} className="raised min-h-12 shrink-0 rounded-full px-5 text-base font-medium text-accent">
-                  {list.length > 0 ? "Edit" : "Add"}
+                  Edit
                 </button>
               </div>
               <p className="mt-2 text-base tabular-nums" data-ladder>
-                {list.length > 0 ? `${list.map(formatKg).join(", ")} kg` : "Not set yet"}
+                {summaryOf(list)}
               </p>
             </li>
           );
@@ -98,6 +94,18 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
       </details>
     </Screen>
   );
+}
+
+/** Long lists read better as a range: "2.5 to 50 kg, every 2.5 kg". */
+function summaryOf(list: readonly number[]): string {
+  const first = list[0];
+  const last = list.at(-1);
+  if (first === undefined || last === undefined) return "Not set yet";
+  const gaps = new Set(list.slice(1).map((g, i) => g - (list[i] ?? 0)));
+  const gap = [...gaps][0];
+  if (list.length > 6 && gaps.size === 1 && gap !== undefined) return `${formatKg(first)} to ${formatKg(last)} kg, every ${formatKg(gap)} kg`;
+  if (list.length > 6 && first === 0 && gaps.size === 2) return `Bodyweight, then ${formatKg(list[1] ?? 0)} to ${formatKg(last)} kg`;
+  return `${list.map(formatKg).join(", ")} kg`;
 }
 
 function LadderEditor({ title, equipment, initial, onSave, onCancel }: { readonly title: string; readonly equipment: Equipment; readonly initial: readonly number[]; readonly onSave: (loadsG: number[]) => Promise<void>; readonly onCancel: () => void }) {
@@ -153,6 +161,11 @@ function LadderEditor({ title, equipment, initial, onSave, onCancel }: { readonl
         </>
       }
     >
+      {loads.length > 0 && (
+        <div className="-mt-2 flex justify-end">
+          <LinkButton onClick={() => setLoads(equipment === "bodyweight" ? [0] : [])}>Clear list</LinkButton>
+        </div>
+      )}
       <ul className="flex flex-wrap gap-2" aria-label="Weights in kg" data-chips>
         {loads.length === 0 && <li className="text-base text-muted">No weights yet.</li>}
         {loads.map((g) => (

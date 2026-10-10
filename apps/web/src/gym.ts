@@ -1,5 +1,6 @@
-// Gym weights: the list of loads the user's gym actually has, per kind of equipment. The user types them in; Liftly
-// never assumes an increment (DECISIONS: the ladder is the user's own). Loads are integer grams everywhere.
+// Gym weights: the list of loads the user's gym has, per kind of equipment. Every exercise starts on a standard
+// commercial-gym list (Rohit, 2026-10-10) that the user can change; the engine only ever moves along the list in use,
+// and each session keeps the list it used. Loads are integer grams everywhere.
 
 import { exercise, PROGRAMS, type Equipment, type ProgramId } from "@liftly/catalog";
 import { formatKg, kgToGrams } from "@liftly/workout";
@@ -77,9 +78,26 @@ export const LADDER_PROBLEM_TEXT: Readonly<Record<Exclude<LadderProblem, null>, 
   zero_not_allowed: "0 kg is only for bodyweight exercises.",
 };
 
-/** The first ladder when none is saved: nothing is assumed, the user fills it in. Bodyweight starts at 0. */
+const steps = (fromKg: number, toKg: number, stepKg: number): number[] => rangeOf(kgToGrams(fromKg), kgToGrams(toKg), kgToGrams(stepKg)) ?? [];
+
+/** Standard weights at a typical commercial gym, used until the user changes a list. Bodyweight adds held weight. */
+export const STANDARD_LADDERS: Readonly<Record<Equipment, readonly number[]>> = {
+  machine: steps(5, 150, 5),
+  cable: steps(2.5, 80, 2.5),
+  dumbbell: steps(2.5, 50, 2.5),
+  bodyweight: [0, ...steps(2.5, 30, 2.5)],
+};
+
+/** The list an exercise uses: the user's own when saved, otherwise the standard one for its equipment. */
+export function withStandardLadders(programId: ProgramId, saved: Readonly<Record<string, readonly number[]>>): Record<string, readonly number[]> {
+  const out: Record<string, readonly number[]> = {};
+  for (const e of equipmentInUse(programId)) for (const id of exercisesFor(programId, e)) out[id] = (saved[id]?.length ?? 0) > 0 ? (saved[id] ?? []) : STANDARD_LADDERS[e];
+  return { ...saved, ...out };
+}
+
+/** The list the editor opens with when none is saved: the standard one. */
 export function startingLadder(equipment: Equipment): number[] {
-  return equipment === "bodyweight" ? [0] : [];
+  return [...STANDARD_LADDERS[equipment]];
 }
 
 export const EQUIPMENT_HELP: Readonly<Record<Equipment, string>> = {

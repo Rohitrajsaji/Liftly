@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { allProgramExercises, equipmentInUse, ladderProblem, mergeLadder, parseKg, rangeOf } from "../src/gym";
+import { exercise } from "@liftly/catalog";
+import { allProgramExercises, equipmentInUse, ladderProblem, mergeLadder, parseKg, rangeOf, STANDARD_LADDERS, withStandardLadders } from "../src/gym";
 
 describe("gym ladders", () => {
   it("parses kilograms", () => {
@@ -29,5 +30,29 @@ describe("gym ladders", () => {
     expect(equipmentInUse("3-day")).toEqual(["machine", "cable", "dumbbell"]);
     expect(equipmentInUse("4-day")).toContain("bodyweight");
     expect(allProgramExercises("4-day").length).toBeGreaterThan(15);
+  });
+});
+
+describe("standard gym weights", () => {
+  it("every exercise in both programs gets a usable list with nothing saved", () => {
+    for (const programId of ["3-day", "4-day"] as const) {
+      const ladders = withStandardLadders(programId, {});
+      for (const id of allProgramExercises(programId)) {
+        const eq = exercise(id).equipment;
+        if (eq === null) continue;
+        expect(ladderProblem(ladders[id] ?? [], eq), id).toBeNull();
+      }
+    }
+  });
+
+  it("a saved list wins over the standard one", () => {
+    const id = allProgramExercises("3-day")[0] ?? "";
+    expect(withStandardLadders("3-day", { [id]: [10_000, 20_000] })[id]).toEqual([10_000, 20_000]);
+  });
+
+  it("standard lists are whole grams, sorted, and bodyweight starts at 0", () => {
+    for (const list of Object.values(STANDARD_LADDERS)) expect([...list].sort((a, b) => a - b)).toEqual(list);
+    expect(STANDARD_LADDERS.bodyweight[0]).toBe(0);
+    expect(STANDARD_LADDERS.dumbbell.slice(0, 3)).toEqual([2_500, 5_000, 7_500]);
   });
 });

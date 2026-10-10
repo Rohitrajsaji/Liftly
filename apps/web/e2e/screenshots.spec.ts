@@ -15,14 +15,13 @@ test("screenshots", async ({ page }) => {
   await page.getByRole("radio", { name: /^3 days a week/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Continue to your first workout" }).click();
-  await shot("01-today-needs-gym");
-  await page.getByRole("button", { name: "Set your gym's weights" }).click();
+  await shot("01-today");
+  await page.getByRole("button", { name: "Gym weights" }).click();
   await shot("02-gym-weights");
   await fill(page, "machine");
   await shot("03-ladder-editor");
   await page.getByRole("button", { name: "Save weights" }).click();
   for (const k of ["cable", "dumbbell"]) {
-    await page.locator(`[data-equipment=${k}]`).getByRole("button", { name: "Add" }).click();
     await fill(page, k);
     await page.getByRole("button", { name: "Save weights" }).click();
   }
@@ -56,7 +55,8 @@ test("screenshots", async ({ page }) => {
 
 async function fill(page: Page, kind: string) {
   const [from, to, step] = RANGES[kind] ?? ["10", "20", "5"];
-  if (await page.getByRole("heading", { name: "Your gym's weights" }).isVisible()) await page.locator(`[data-equipment=${kind}]`).getByRole("button", { name: /Add|Edit/ }).click();
+  if (await page.getByRole("heading", { name: "Your gym's weights" }).isVisible()) await page.locator(`[data-equipment=${kind}]`).getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Clear list" }).click();
   await page.getByLabel("Start (kg)").fill(from);
   await page.getByLabel("End (kg)").fill(to);
   await page.getByLabel("Step (kg)").fill(step);
@@ -71,9 +71,8 @@ test("progress screenshots", async ({ page }) => {
   await page.getByRole("radio", { name: /^3 days a week/ }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Continue to your first workout" }).click();
-  await page.getByRole("button", { name: "Set your gym's weights" }).click();
+  await page.getByRole("button", { name: "Gym weights" }).click();
   for (const k of ["machine", "cable", "dumbbell"]) {
-    await page.locator(`[data-equipment=${k}]`).getByRole("button", { name: "Add" }).click();
     await fill(page, k);
     await page.getByRole("button", { name: "Save weights" }).click();
   }
