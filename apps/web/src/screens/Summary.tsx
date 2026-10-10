@@ -2,12 +2,12 @@
 
 import { REP_RANGES } from "@liftly/engine";
 import { exercise } from "@liftly/catalog";
-import { calibrationLine, FIRST_EXPOSURE_LINE, formatKg, PAIN_ON_SWAP_TEXT, PAIN_STOP_TEXT, REASON_LINES, workingSets, workingWeightLine, type ExerciseRecord, type SessionRecord } from "@liftly/workout";
+import { calibrationLine, FIRST_EXPOSURE_LINE, formatKg, newRecords, sessionStats, PAIN_ON_SWAP_TEXT, PAIN_STOP_TEXT, REASON_LINES, workingSets, workingWeightLine, type ExerciseRecord, type SessionRecord } from "@liftly/workout";
 import type { DebriefRecord } from "../db";
 import { failureNote } from "../debrief";
-import { ProgressDots } from "../dots";
+import { Ring } from "../dots";
 import { exerciseName } from "../gym";
-import { Button, Note, Screen } from "../ui";
+import { Button, LinkButton, Note, Screen } from "../ui";
 
 export function DebriefCard({ record, waiting, onRetry }: { readonly record: DebriefRecord | undefined; readonly waiting: boolean; /** Set when AI summaries are on: shows why the fixed text is shown, and a Try again button. */ readonly onRetry?: (() => void) | undefined }) {
   if (record === undefined) return null;
@@ -15,16 +15,24 @@ export function DebriefCard({ record, waiting, onRetry }: { readonly record: Deb
   return (
     <section key={waiting ? "waiting" : record.source} className="card-accent fade-in p-4" aria-label="Workout summary" data-debrief={waiting ? "waiting" : record.source}>
       <p className="eyebrow">{record.source === "claude" ? "Summary by AI" : "Summary"}</p>
-      <p className="mt-1 text-base" role="status">
-        {waiting ? "Writing your summary…" : record.text}
-      </p>
+      {waiting ? (
+        <div role="status" aria-label="Writing your summary" className="mt-2 flex flex-col gap-2" data-debrief-waiting>
+          <span className="sr-only">Writing your summary…</span>
+          <span className="shimmer block h-3.5 w-full rounded-full" />
+          <span className="shimmer block h-3.5 w-11/12 rounded-full" />
+          <span className="shimmer block h-3.5 w-3/5 rounded-full" />
+          <span className="mt-1 text-sm text-muted">Writing your summary…</span>
+        </div>
+      ) : (
+        <p className="mt-1 text-base leading-relaxed" role="status">
+          {record.text}
+        </p>
+      )}
       {note !== null && (
         <div className="mt-2 text-sm text-muted" data-debrief-note>
           <p>{note.text}</p>
           {note.detail !== null && <p className="mt-1 break-words opacity-80">({note.detail})</p>}
-          <button type="button" onClick={onRetry} className="mt-1 min-h-12 rounded-xl font-medium text-accent underline">
-            Try again
-          </button>
+          <LinkButton onClick={onRetry}>Try again</LinkButton>
         </div>
       )}
     </section>
@@ -33,6 +41,7 @@ export function DebriefCard({ record, waiting, onRetry }: { readonly record: Deb
 
 export function Summary({
   session,
+  sessions,
   onHome,
   accountPrompt,
   debrief,
@@ -41,6 +50,8 @@ export function Summary({
   onOfferAi,
 }: {
   readonly session: SessionRecord;
+  /** Every finished workout, this one included, to spot new records. */
+  readonly sessions: readonly SessionRecord[];
   readonly onHome: () => void;
   readonly accountPrompt: { readonly onCreate: () => void } | null;
   readonly debrief: DebriefRecord | undefined;
@@ -50,19 +61,48 @@ export function Summary({
   readonly onOfferAi?: (() => void) | undefined;
 }) {
   const done = session.exercises.filter((e) => e.status === "done").length;
+  const stats = sessionStats(session);
+  const records = newRecords(sessions, session);
+  const volumeKg = Math.round(stats.volumeG / 1000);
   return (
     <Screen title={session.completion === "full" ? "Workout complete" : "Workout saved"} actions={<Button onClick={onHome}>Done</Button>}>
-      <div className="-mt-2 flex items-center justify-between">
-        <p className="text-base text-muted" data-summary-count>
-          {done} of {session.exercises.length} exercises done.
-        </p>
-        <ProgressDots done={done} total={session.exercises.length} />
-      </div>
+      <section className="card flex items-center gap-5 p-5" aria-label="Today's workout in numbers" data-summary-stats>
+        <Ring value={done / Math.max(1, session.exercises.length)} accent size={104} stroke={9}>
+          <p className="text-2xl font-semibold tabular-nums">
+            {done}/{session.exercises.length}
+          </p>
+          <p className="text-xs text-muted">exercises</p>
+        </Ring>
+        <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-3">
+          <Stat label="Time" value={stats.minutes === null ? "–" : `${stats.minutes} min`} />
+          <Stat label="Sets" value={String(stats.sets)} />
+          <Stat label="Reps" value={String(stats.reps)} />
+          <Stat label="Lifted" value={`${volumeKg.toLocaleString("en-IN")} kg`} />
+        </dl>
+      </section>
+      <p className="sr-only" data-summary-count>
+        {done} of {session.exercises.length} exercises done.
+      </p>
+      {records.length > 0 && (
+        <section className="card-accent rise p-4" aria-label="New records" data-new-records>
+          <p className="eyebrow">{records.length === 1 ? "New record" : `${records.length} new records`}</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {records.map((r) => (
+              <li key={r.exerciseId} className="flex justify-between gap-3 text-base">
+                <span className="font-medium">{exerciseName(r.exerciseId)}</span>
+                <span className="tabular-nums">
+                  {formatKg(r.weightG)} kg × {r.reps}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <DebriefCard record={debrief} waiting={waiting} onRetry={onRetry} />
       {onOfferAi !== undefined && (
-        <button type="button" onClick={onOfferAi} className="-mt-2 min-h-12 self-start rounded-xl text-sm font-medium text-accent underline" data-offer-ai>
+        <LinkButton onClick={onOfferAi} className="-mt-2 self-start text-sm" data-offer-ai>
           Want a written summary from AI? Turn it on in Account
-        </button>
+        </LinkButton>
       )}
       <ol className="stagger flex flex-col gap-3" aria-label="Results">
         {session.exercises.map((er) => (
@@ -75,9 +115,7 @@ export function Summary({
       {accountPrompt !== null && (
         <Note>
           This workout is saved on your phone only.{" "}
-          <button type="button" onClick={accountPrompt.onCreate} className="min-h-12 font-medium text-accent underline">
-            Create an account to back it up
-          </button>
+          <LinkButton onClick={accountPrompt.onCreate}>Create an account to back it up</LinkButton>
         </Note>
       )}
     </Screen>
@@ -107,5 +145,14 @@ function Result({ er }: { readonly er: ExerciseRecord }) {
         </div>
       )}
     </>
+  );
+}
+
+function Stat({ label, value }: { readonly label: string; readonly value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="text-lg font-semibold tabular-nums">{value}</dd>
+    </div>
   );
 }

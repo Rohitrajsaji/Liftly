@@ -56,3 +56,13 @@ describe("theme contrast", () => {
     }
   });
 });
+
+describe("muscle groups (display only)", () => {
+  it("every exercise in the library has a group", async () => {
+    const { EXERCISES } = await import("@liftly/catalog");
+    const { muscleOf } = await import("../src/muscles");
+    const src = (await import("node:fs")).readFileSync(new URL("../src/muscles.ts", import.meta.url), "utf8");
+    for (const id of Object.keys(EXERCISES)) expect(src, id).toContain(`  ${id}: "`);
+    expect(muscleOf("leg_press")).toBe("Legs");
+  });
+});

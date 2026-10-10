@@ -6,3 +6,4 @@ export * from "./text";
 export * from "./format";
 export * from "./progress";
 export * from "./debrief";
+export * from "./insights";

@@ -1,7 +1,7 @@
 // History (PRD screen 11): finished workouts, newest first, with every set.
 
 import { slot, type SlotKey } from "@liftly/catalog";
-import { formatKg, history, type SessionRecord } from "@liftly/workout";
+import { formatKg, history, newRecords, sessionStats, type SessionRecord } from "@liftly/workout";
 import type { DebriefRecord } from "../db";
 import { exerciseName } from "../gym";
 import { Screen } from "../ui";
@@ -13,6 +13,7 @@ const longDate = (d: string): string => {
 
 export function History({ sessions, programId, debriefs, onRetry }: { readonly sessions: readonly SessionRecord[]; readonly programId: "3-day" | "4-day"; readonly debriefs: Readonly<Record<string, DebriefRecord>>; readonly onRetry?: ((sessionId: string) => void) | undefined }) {
   const items = history(sessions);
+  const byId = new Map(sessions.map((s) => [s.id, s]));
   const nameOf = (k: string): string => {
     try {
       return slot(programId, k as SlotKey).name;
@@ -31,16 +32,31 @@ export function History({ sessions, programId, debriefs, onRetry }: { readonly s
   }
   return (
     <Screen title="History">
-      <ol className="stagger flex flex-col gap-4" aria-label="Workouts" data-history>
-        {items.map((it) => (
-          <li key={it.id} className="card p-4" data-history-item>
-            <details>
+      <ol className="stagger flex flex-col gap-3" aria-label="Workouts" data-history>
+        {items.map((it) => {
+          const rec = byId.get(it.id);
+          const st = rec === undefined ? null : sessionStats(rec);
+          const prs = rec === undefined ? 0 : newRecords(sessions, rec).length;
+          return (
+          <li key={it.id} className="card px-5 py-4" data-history-item>
+            <details className="group">
               <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3">
-                <span>
-                  <span className="block text-base font-medium">{nameOf(it.slotKey)}</span>
-                  <span className="text-sm text-muted">{longDate(it.date)}</span>
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-base font-medium">{nameOf(it.slotKey)}</span>
+                    {prs > 0 && <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">{prs === 1 ? "1 record" : `${prs} records`}</span>}
+                  </span>
+                  <span className="block text-sm text-muted tabular-nums">
+                    {longDate(it.date)}
+                    {st !== null && ` · ${st.minutes === null ? "" : `${st.minutes} min · `}${st.sets} sets`}
+                    {it.completion !== "full" && " · Partial"}
+                  </span>
                 </span>
-                <span className="text-sm text-muted">{it.completion === "full" ? "Complete" : "Partial"}</span>
+                <span className="flex shrink-0 items-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="text-muted transition-transform duration-300 group-open:rotate-180">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </span>
               </summary>
               {debriefs[it.id] !== undefined && (
                 <div className="mt-3">
@@ -48,7 +64,7 @@ export function History({ sessions, programId, debriefs, onRetry }: { readonly s
                     {debriefs[it.id]?.text}
                   </p>
                   {onRetry !== undefined && debriefs[it.id]?.source === "fallback" && (
-                    <button type="button" onClick={() => onRetry(it.id)} className="min-h-12 rounded-xl text-sm font-medium text-accent underline" data-history-retry>
+                    <button type="button" onClick={() => onRetry(it.id)} className="min-h-12 text-sm font-medium text-accent underline underline-offset-4" data-history-retry>
                       Write the AI summary
                     </button>
                   )}
@@ -67,7 +83,8 @@ export function History({ sessions, programId, debriefs, onRetry }: { readonly s
               </ul>
             </details>
           </li>
-        ))}
+          );
+        })}
       </ol>
     </Screen>
   );

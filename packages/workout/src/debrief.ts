@@ -196,7 +196,7 @@ export const DEBRIEF_FALLBACK: Readonly<Record<ReasonCode, string>> = {
 };
 
 const FALLBACK_OPENING = "Workout saved. Well done for getting it done.";
-const FALLBACK_CLOSING = "Your next targets are listed above.";
+const FALLBACK_CLOSING = "Your next targets are shown with each exercise.";
 
 /** Fixed text for this session's reason codes. Mentions no numbers, so it cannot disagree with the engine. */
 export function fallbackDebrief(input: DebriefInput): string {

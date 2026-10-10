@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { chooseBrowserUse, detectPlatform, type Platform } from "../mode";
 import { useInstallPrompt } from "../shell";
+import { Demo } from "./Demo";
 
 const FEATURES: readonly { readonly title: string; readonly text: string }[] = [
   { title: "Tells you the weight", text: "Before every set you see the exact weight and reps to aim for. After the workout it works out your next target." },
@@ -137,6 +138,28 @@ export function Landing({ onUseInBrowser }: { readonly onUseInBrowser: () => voi
         </div>
       </section>
 
+      <section id="demo" aria-labelledby="see" className="grid items-center gap-10 md:grid-cols-[1fr_auto] md:gap-16" data-reveal>
+        <div className="flex flex-col gap-4">
+          <h2 id="see" className="text-2xl font-semibold md:text-3xl">
+            See it in action
+          </h2>
+          <p className="text-base text-muted md:text-lg">Try the real app screens here with sample data. Tap how a set felt, watch the rest timer start by itself, then see what changes next time.</p>
+          <ul className="flex flex-col gap-2 text-base">
+            {["One tap logs a set", "Rest timer starts by itself", "Your next weights the moment you finish", "Progress you can see week by week"].map((t) => (
+              <li key={t} className="flex items-center gap-3">
+                <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-xs text-accent-ink">
+                  ✓
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="w-full md:w-[24rem]">
+          <Demo />
+        </div>
+      </section>
+
       <section aria-labelledby="what" className="flex flex-col gap-6" data-reveal>
         <h2 id="what" className="text-2xl font-semibold md:text-3xl">
           What it does
@@ -175,19 +198,19 @@ export function Landing({ onUseInBrowser }: { readonly onUseInBrowser: () => voi
             ? "Liftly is a web app: there is nothing to download from an app store. Add it to your home screen and it opens like any other app, even without internet."
             : "Open liftly.space on your phone, then add it to the home screen. It opens like any other app, even without internet. There is nothing to download from an app store."}
         </p>
-        <div className="flex gap-2" role="group" aria-label="Choose your phone">
+        <div className="flex flex-wrap gap-3" role="group" aria-label="Choose your phone">
           {(["ios", "android"] as const).map((p) => (
-            <button key={p} type="button" aria-pressed={choice === p} onClick={() => setChoice(p)} className={`min-h-12 rounded-full px-5 text-base ${choice === p ? "raised font-medium text-accent" : "text-muted"}`}>
+            <button key={p} type="button" aria-pressed={choice === p} onClick={() => setChoice(p)} className={`min-h-12 rounded-full px-5 text-base ${choice === p ? "pressed font-medium text-accent" : "raised"}`}>
               {INSTALL[p].name}
             </button>
           ))}
           {!onPhone && (
-            <button type="button" aria-pressed={choice === "both"} onClick={() => setChoice("both")} className={`min-h-12 rounded-full px-5 text-base ${choice === "both" ? "raised font-medium text-accent" : "text-muted"}`}>
+            <button type="button" aria-pressed={choice === "both"} onClick={() => setChoice("both")} className={`min-h-12 rounded-full px-5 text-base ${choice === "both" ? "pressed font-medium text-accent" : "raised"}`}>
               Both
             </button>
           )}
         </div>
-        <div className={`grid gap-5 ${shown.length > 1 ? "md:grid-cols-2" : ""}`}>
+        <div className={`grid gap-5 ${shown.length > 1 ? "md:grid-cols-2" : "md:max-w-xl"}`}>
           {shown.map((p) => (
             <div key={p} className="card pop p-6" data-install={p}>
               <p className="text-lg font-medium">{INSTALL[p].name}</p>
@@ -227,7 +250,7 @@ export function Landing({ onUseInBrowser }: { readonly onUseInBrowser: () => voi
 
       <footer className="flex flex-col items-start gap-3 border-t border-line pt-8 text-sm text-muted md:flex-row md:items-center md:justify-between">
         <p>Liftly. Not medical advice.</p>
-        <button type="button" onClick={useInBrowser} className="min-h-12 rounded-xl font-medium text-accent underline" data-use-in-browser>
+        <button type="button" onClick={useInBrowser} className="min-h-12 font-medium text-accent underline underline-offset-4" data-use-in-browser>
           Use in browser instead
         </button>
       </footer>

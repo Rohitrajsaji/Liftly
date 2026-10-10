@@ -10,7 +10,7 @@ async function onboard(page: Page, days: 3 | 4 = 3) {
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Your plan" })).toBeVisible();
   await page.getByRole("button", { name: "Continue to your first workout" }).click();
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.locator("nav [aria-current=page]", { hasText: "Today" })).toBeVisible();
 }
 
 const RANGES: Record<string, [string, string, string]> = {
@@ -35,20 +35,19 @@ async function setupGym(page: Page) {
     await expect(page.getByRole("heading", { name: "Your gym's weights" })).toBeVisible();
   }
   await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.locator("nav [aria-current=page]", { hasText: "Today" })).toBeVisible();
 }
 
 const tap = (page: Page, effort: string) => page.locator(`[data-effort=${effort}]`).click();
 
 async function quickWorkout(page: Page) {
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await tap(page, "good");
   await page.getByRole("button", { name: "Workout list" }).click();
   await page.getByRole("button", { name: "Finish workout" }).click();
   await expect(page.getByRole("heading", { name: "Workout saved" })).toBeVisible();
   await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.locator("nav [aria-current=page]", { hasText: "Today" })).toBeVisible();
 }
 
 test("first run shows a getting-started guide that ticks off as you go and disappears after the first workout", async ({ page }) => {
@@ -66,7 +65,7 @@ test("first run: gym weights are needed, then today's workout shows calibration 
   await onboard(page);
   await expect(page.getByRole("button", { name: "Start workout" })).toHaveCount(0);
   await setupGym(page);
-  await expect(page.locator("[data-workout-name]")).toHaveText("Workout A");
+  await expect(page.locator("[data-screen-title]")).toHaveText("Workout A");
   const rows = page.locator("[data-exercise-row]");
   await expect(rows).toHaveCount(5);
   await expect(page.locator("[data-calibration-note]")).toContainText("Start light");
@@ -78,7 +77,6 @@ test("calibration: a Good first set ends the ramp, one tap logs a set, the rest 
   await onboard(page);
   await setupGym(page);
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await expect(page.locator("[data-set-heading]")).toHaveText("Warm-up set 1");
   await expect(page.locator("[data-weight]")).toContainText("10");
   // Easy moves up one step of the user's own list (10 -> 20).
@@ -100,7 +98,6 @@ test("the workout in progress survives a reload (O-02)", async ({ page }) => {
   await onboard(page);
   await setupGym(page);
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await tap(page, "good");
   await expect(page.locator("[data-logged-set]")).toHaveCount(1);
   // The write to the phone is queued right after the tap; give it a moment before pulling the plug.
@@ -114,7 +111,6 @@ test("pain: stops the exercise with the fixed text, and the next workout uses th
   await onboard(page);
   await setupGym(page);
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await tap(page, "good");
   await page.locator("[data-report-pain]").click();
   await expect(page.getByRole("button", { name: "Stop this exercise" })).toBeDisabled();
@@ -131,7 +127,7 @@ test("pain: stops the exercise with the fixed text, and the next workout uses th
   await page.getByRole("button", { name: "Done" }).click();
   // The slot's swap shows up the next time that workout comes round (A -> B -> C -> A).
   for (let i = 0; i < 2; i++) await quickWorkout(page);
-  await expect(page.locator("[data-workout-name]")).toHaveText("Workout A");
+  await expect(page.locator("[data-screen-title]")).toHaveText("Workout A");
   await expect(page.locator("[data-exercise-row]").first()).toContainText("instead of");
 });
 
@@ -139,7 +135,6 @@ test("serious pain shows the professional-help message", async ({ page }) => {
   await onboard(page);
   await setupGym(page);
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await page.locator("[data-report-pain]").click();
   await page.locator("[data-location=shoulder]").click();
   await page.locator("[data-severity='8']").click();
@@ -153,7 +148,6 @@ test("a finished workout shows the engine's next target; the next time round sho
   await onboard(page);
   await setupGym(page);
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await tap(page, "good");
   await tap(page, "good");
   await tap(page, "good");
@@ -167,7 +161,6 @@ test("a finished workout shows the engine's next target; the next time round sho
   await expect(first).toContainText("Last time: 10 kg ×");
   await expect(page.locator("[data-calibration-note]")).toHaveCount(0);
   await page.getByRole("button", { name: "Start workout" }).click();
-  await page.locator("[data-exercise-row]").first().click();
   await expect(page.locator("[data-previous]")).toContainText("Last time");
   await expect(page.locator("[data-set-heading]")).toHaveText("Set 1 of 3");
 });
@@ -188,6 +181,8 @@ test("tap targets are large and nothing scrolls sideways on the workout screens"
   await check();
   await page.getByRole("button", { name: "Start workout" }).click();
   await check();
+  await page.getByRole("button", { name: "Workout list" }).click();
+  await check();
   await page.locator("[data-exercise-row]").first().click();
   await check();
   await tap(page, "good");
@@ -206,8 +201,8 @@ test.describe("with an account", () => {
     await page.getByLabel("Email").fill("rohit@example.com");
     await page.getByLabel("Password", { exact: true }).fill("correct horse 9");
     await page.getByRole("button", { name: "Create account", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
+    await expect(page.locator("nav [aria-current=page]", { hasText: "Today" })).toBeVisible();
 
     await setupGym(page);
     await expect.poll(() => fake.ladders.size).toBeGreaterThan(5);
@@ -236,8 +231,8 @@ test.describe("with an account", () => {
     await p2.getByLabel("Email").fill("rohit@example.com");
     await p2.getByLabel("Password", { exact: true }).fill("correct horse 9");
     await p2.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(p2.getByRole("heading", { name: "Today" })).toBeVisible();
-    await expect(p2.locator("[data-workout-name]")).toHaveText("Workout B");
+    await expect(p2.locator("nav [aria-current=page]", { hasText: "Today" })).toBeVisible();
+    await expect(p2.locator("[data-screen-title]")).toHaveText("Workout B");
     await expect(p2.getByRole("button", { name: "Start workout" })).toBeVisible();
     await phone2.close();
   });
@@ -254,7 +249,7 @@ test.describe("with an account", () => {
     await page.getByLabel("Email").fill("rohit@example.com");
     await page.getByLabel("Password", { exact: true }).fill("correct horse 9");
     await page.getByRole("button", { name: "Create account", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
     await expect.poll(() => fake.events.size).toBe(1);
     await expect.poll(() => fake.ladders.size).toBeGreaterThan(5);
   });
@@ -263,10 +258,10 @@ test.describe("with an account", () => {
 test("back works through the whole workout: exercise, list, today, and the phone's back gesture", async ({ page }) => {
   await onboard(page);
   await setupGym(page);
+  // Start goes straight into the first exercise.
   await page.getByRole("button", { name: "Start workout" }).click();
-  await expect(page.locator("[data-session-list]")).toBeVisible();
-  await page.locator("[data-exercise-row]").first().click();
   await expect(page.locator("[data-effort=good]")).toBeVisible();
+  await expect(page.locator("[data-workout-progress]")).toContainText("0 of");
   const back = page.getByRole("button", { name: "Previous screen" });
   await back.click();
   await expect(page.locator("[data-session-list]")).toBeVisible();
@@ -274,7 +269,7 @@ test("back works through the whole workout: exercise, list, today, and the phone
   await page.goBack();
   await expect(page.locator("[data-session-list]")).toBeVisible();
   await back.click();
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.locator("nav [aria-current=page]", { hasText: "Today" })).toBeVisible();
   // The workout is still there to continue.
   await expect(page.getByRole("button", { name: "Continue workout" })).toBeVisible();
 });
@@ -290,11 +285,11 @@ test.describe("Claude summary (M8)", () => {
     await page.getByLabel("Email").fill("rohit@example.com");
     await page.getByLabel("Password", { exact: true }).fill("correct horse 9");
     await page.getByRole("button", { name: "Create account", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
     return fake;
   }
   const turnOn = async (page: Page) => {
-    await page.getByRole("button", { name: "Account" }).click();
+    await page.getByRole("button", { name: "Account", exact: true }).click();
     await page.getByRole("button", { name: "Turn on…" }).click();
     await expect(page.getByText("No name, email or phone number is sent.")).toBeVisible();
     await page.getByRole("button", { name: "I agree, turn on" }).click();
@@ -303,7 +298,6 @@ test.describe("Claude summary (M8)", () => {
   };
   const finishOne = async (page: Page) => {
     await page.getByRole("button", { name: "Start workout" }).click();
-    await page.locator("[data-exercise-row]").first().click();
     await tap(page, "good");
     await page.getByRole("button", { name: "Workout list" }).click();
     await page.getByRole("button", { name: "Finish workout" }).click();
@@ -400,7 +394,6 @@ test.describe("progress and history", () => {
 
     // One full exercise: calibration (Good first) then two more sets at 8 reps, the bottom of the range.
     await page.getByRole("button", { name: "Start workout" }).click();
-    await page.locator("[data-exercise-row]").first().click();
     await tap(page, "good");
     await tap(page, "good");
     await tap(page, "good");
@@ -420,7 +413,8 @@ test.describe("progress and history", () => {
     await expect(page.locator("[data-record]")).toContainText("10 kg × 8");
     await expect(page.locator("[data-chart]")).toBeVisible();
     await expect(page.getByText("One workout so far")).toBeVisible();
-    await expect(page.locator("[data-weeks] li")).toHaveCount(8);
+    await expect(page.locator("[data-calendar] [data-week]")).toHaveCount(12);
+    await expect(page.locator("[data-this-week]")).toContainText("1/3");
     await context.setOffline(false);
   });
 });
