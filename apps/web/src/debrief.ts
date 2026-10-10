@@ -23,7 +23,10 @@ export const DEBRIEF_CONSENT_POINTS: readonly string[] = [
 ];
 
 export const MAX_ATTEMPTS = 2;
-const TIMEOUT_MS = 20_000;
+/** Back-off after each rate limit, in seconds. The server's Retry-After wins when it is longer. */
+export const BACKOFF_S: readonly number[] = [60, 300, 1800, 7200];
+export const MAX_DEFERRALS = BACKOFF_S.length + 2;
+const TIMEOUT_MS = 65_000; // the function tries several models for up to ~55 s
 const FLAG = "claudeDebrief";
 
 export async function claudeDebriefOn(db: LiftlyDb): Promise<boolean> {
@@ -47,7 +50,7 @@ export async function setClaudeDebrief(db: LiftlyDb, backend: Backend, session: 
 export async function ensureDebrief(db: LiftlyDb, session: SessionRecord, input: DebriefInput, now: Date): Promise<DebriefRecord> {
   const have = await db.debriefs.get(session.id);
   if (have !== undefined) return have;
-  const rec: DebriefRecord = { sessionId: session.id, text: fallbackDebrief(input), source: "fallback", attempts: 0, lastFailure: null, input, updatedAt: now.toISOString() };
+  const rec: DebriefRecord = { sessionId: session.id, text: fallbackDebrief(input), source: "fallback", attempts: 0, lastFailure: null, nextTryAt: null, deferrals: 0, input, updatedAt: now.toISOString() };
   await db.debriefs.put(rec);
   return rec;
 }
@@ -55,27 +58,50 @@ export async function ensureDebrief(db: LiftlyDb, session: SessionRecord, input:
 const withTimeout = <T>(p: Promise<T>): Promise<T> =>
   Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new BackendError("offline", "Timed out")), TIMEOUT_MS))]);
 
-/** One request to Claude for a saved debrief. Returns the (possibly updated) record. Never throws. */
-export async function requestClaudeDebrief(db: LiftlyDb, backend: Backend, sessionId: string, now: Date): Promise<DebriefRecord | null> {
+let queue: Promise<unknown> = Promise.resolve();
+
+/** One request to the AI model for a saved debrief, one at a time so a burst can't trip the rate limit. Never throws. */
+export function requestClaudeDebrief(db: LiftlyDb, backend: Backend, sessionId: string, now: Date): Promise<DebriefRecord | null> {
+  const run = queue.then(() => requestNow(db, backend, sessionId, now));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function requestNow(db: LiftlyDb, backend: Backend, sessionId: string, now: Date): Promise<DebriefRecord | null> {
   const rec = await db.debriefs.get(sessionId);
   if (rec === undefined || rec.source === "claude" || rec.attempts >= MAX_ATTEMPTS) return rec ?? null;
-  const failed = async (reason: string, counts: boolean): Promise<DebriefRecord> => {
+  const failed = async (reason: string, counts: boolean, nextTryAt: string | null = null, deferred = false): Promise<DebriefRecord> => {
     console.warn(`Liftly debrief: using the fixed text (${reason})`);
-    const next: DebriefRecord = { ...rec, attempts: rec.attempts + (counts ? 1 : 0), lastFailure: reason, updatedAt: now.toISOString() };
+    const next: DebriefRecord = {
+      ...rec,
+      attempts: rec.attempts + (counts ? 1 : 0),
+      deferrals: rec.deferrals + (deferred ? 1 : 0),
+      lastFailure: reason,
+      nextTryAt,
+      updatedAt: now.toISOString(),
+    };
     await db.debriefs.put(next);
     return next;
   };
+  if (rec.nextTryAt !== null && Date.parse(rec.nextTryAt) > now.getTime()) return rec;
   let raw: unknown;
   try {
     raw = await withTimeout(backend.requestDebrief(rec.input));
   } catch (e) {
-    // Not reaching Claude (offline, not allowed yet, over the limit) is not a failed attempt: try again later.
     const kind = e instanceof BackendError ? e.kind : "other";
-    return failed(kind, kind !== "offline" && kind !== "consent_required" && kind !== "rate_limited");
+    // Offline or not yet allowed: not a failed attempt; try again when back online / after consent.
+    if (kind === "offline" || kind === "consent_required") return failed(kind, false);
+    // Rate limited: wait longer each time, and give up counting it as free after several tries.
+    if (kind === "rate_limited") {
+      const wait = Math.max(BACKOFF_S[Math.min(rec.deferrals, BACKOFF_S.length - 1)] ?? 7200, e instanceof BackendError ? (e.retryAfterS ?? 0) : 0);
+      const exhausted = rec.deferrals + 1 >= MAX_DEFERRALS;
+      return failed(kind, exhausted, new Date(now.getTime() + wait * 1000).toISOString(), true);
+    }
+    return failed(kind, true);
   }
   const check = validateDebrief(raw, rec.input);
   if (!check.ok) return failed(`validation: ${check.reason}`, true);
-  const next: DebriefRecord = { ...rec, text: check.text, source: "claude", lastFailure: null, updatedAt: now.toISOString() };
+  const next: DebriefRecord = { ...rec, text: check.text, source: "claude", lastFailure: null, nextTryAt: null, updatedAt: now.toISOString() };
   await db.debriefs.put(next);
   return next;
 }
@@ -84,7 +110,7 @@ export async function requestClaudeDebrief(db: LiftlyDb, backend: Backend, sessi
 export async function retryPending(db: LiftlyDb, backend: Backend, now: Date): Promise<string[]> {
   if (!(await claudeDebriefOn(db))) return [];
   const cutoff = new Date(now.getTime() - 7 * 86_400_000).toISOString();
-  const todo = (await db.debriefs.where("updatedAt").above(cutoff).toArray()).filter((r) => r.source === "fallback" && r.attempts < MAX_ATTEMPTS).slice(-3);
+  const todo = (await db.debriefs.where("updatedAt").above(cutoff).toArray()).filter((r) => r.source === "fallback" && r.attempts < MAX_ATTEMPTS && (r.nextTryAt === null || Date.parse(r.nextTryAt) <= now.getTime())).slice(-3);
   const changed: string[] = [];
   for (const r of todo) {
     const out = await requestClaudeDebrief(db, backend, r.sessionId, now);

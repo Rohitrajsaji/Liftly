@@ -6,12 +6,18 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const MODEL = Deno.env.get("DEBRIEF_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b:free";
+// Models to try in order (secret DEBRIEF_MODELS, comma separated). When one is rate limited or down, the next one is used.
+const MODELS = (Deno.env.get("DEBRIEF_MODELS") ?? Deno.env.get("DEBRIEF_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free")
+  .split(",")
+  .map((m) => m.trim())
+  .filter((m) => m !== "");
 const DAILY_CAP = 20;
 // Must match DEBRIEF_CONSENT_VERSION in apps/web/src/debrief.ts: the user has to have accepted exactly this text.
 const CONSENT_VERSION = "ai-debrief-draft-2";
 const MAX_BODY_BYTES = 20_000;
-const TIMEOUT_MS = 40_000; // free models can be slow
+const TIMEOUT_MS = 25_000; // per model call; free models can be slow
+const BUDGET_MS = 55_000; // all attempts together, so the app is never kept waiting longer than this
+const MAX_BACKOFF_MS = 3_000;
 
 const SYSTEM_PROMPT = `You write the short debrief shown after a beginner's gym workout in the Liftly app. A progression engine has already decided every number. You only explain.
 
@@ -76,27 +82,51 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
   const { count } = await supabase.from("debrief_log").select("id", { count: "exact", head: true }).gte("created_at", since);
   if ((count ?? 0) >= DAILY_CAP) return reply(429, { error: "daily limit" });
-  const logged = await supabase.from("debrief_log").insert({});
-  if (logged.error !== null) return reply(500, { error: "log" });
-
   const key = Deno.env.get("OPENROUTER_API_KEY");
   if (!key) return reply(503, { error: "not configured" });
 
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { authorization: `Bearer ${key}`, "content-type": "application/json", "x-title": "Liftly" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1500,
-        temperature: 0.3,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Input block (JSON):\n${JSON.stringify(input)}` },
-        ],
-      }),
-    });
+  // Try each model; on a rate limit (429) or a server error wait briefly (honouring Retry-After) and move on. If every
+  // attempt fails, tell the app whether it was a rate limit and when to try again, so it can back off.
+  const started = Date.now();
+  let rateLimited = false;
+  let retryAfterS = 0;
+  for (const model of MODELS) {
+    if (Date.now() - started > BUDGET_MS - 5_000) break;
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        signal: AbortSignal.timeout(Math.min(TIMEOUT_MS, BUDGET_MS - (Date.now() - started))),
+        headers: { authorization: `Bearer ${key}`, "content-type": "application/json", "x-title": "Liftly" },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1500,
+          temperature: 0.3,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: `Input block (JSON):\n${JSON.stringify(input)}` },
+          ],
+        }),
+      });
+      if (res.status === 429) {
+        rateLimited = true;
+        const wait = Number(res.headers.get("retry-after") ?? "");
+        retryAfterS = Math.max(retryAfterS, Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : 60);
+        await new Promise((r) => setTimeout(r, Math.min(MAX_BACKOFF_MS, (retryAfterS || 1) * 1000)));
+        continue;
+      }
+      if (!res.ok) continue;
+      const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
+      const out = extractJson(data.choices?.[0]?.message?.content ?? "");
+      if (out === undefined) continue;
+      // Count the request only when it produced something, so a provider outage doesn't use up the daily cap.
+      await supabase.from("debrief_log").insert({});
+      return reply(200, out);
+    } catch {
+      // Timed out or the connection dropped: try the next model.
+    }
+  }
+  return rateLimited ? reply(429, { error: "rate limited", retry_after: retryAfterS || 60 }) : reply(502, { error: "no model answered" });
+});
     if (!res.ok) return reply(res.status === 429 ? 429 : 502, { error: "upstream" });
     const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
     const out = extractJson(data.choices?.[0]?.message?.content ?? "");

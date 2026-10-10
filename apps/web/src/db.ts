@@ -61,6 +61,10 @@ export interface DebriefRecord {
   /** Requests that reached Claude and failed. At most one retry later, so the limit is 2. */
   readonly attempts: number;
   readonly lastFailure: string | null;
+  /** Do not ask again before this time (rate limit back-off); null means any time. */
+  readonly nextTryAt: string | null;
+  /** Times the model was rate limited. Backs off 1, 5, 30 minutes, 2 hours; after MAX_DEFERRALS it counts as a failed attempt. */
+  readonly deferrals: number;
   /** The input block, kept so the one retry can run later. */
   readonly input: DebriefInput;
   readonly updatedAt: string;

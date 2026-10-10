@@ -44,6 +44,8 @@ export class BackendError extends Error {
   constructor(
     readonly kind: BackendErrorKind,
     message: string,
+    /** For "rate_limited": seconds the server asked us to wait. */
+    readonly retryAfterS?: number,
   ) {
     super(message);
     this.name = "BackendError";

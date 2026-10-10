@@ -46,7 +46,7 @@ export class FakeSupabase {
   restCalls: string[] = [];
   profileWrites = 0;
   /** The debrief function: "ok" returns a valid summary, "invalid" an unusable one, "down" a server error. */
-  debriefMode: "ok" | "invalid" | "down" = "ok";
+  debriefMode: "ok" | "invalid" | "down" | "limited" = "ok";
   debriefCalls = 0;
   rpcCalls: string[] = [];
   /** When true every request fails like a dropped connection. */
@@ -163,6 +163,7 @@ export class FakeSupabase {
       if (userId === null) return this.json(route, 401, { error: "sign in" });
       if (![...this.consents.values()].some((c) => c.user_id === userId && c.consent_version === "ai-debrief-draft-2")) return this.json(route, 403, { error: "consent" });
       this.debriefCalls += 1;
+      if (this.debriefMode === "limited") return this.json(route, 429, { error: "rate limited", retry_after: 60 });
       if (this.debriefMode === "down") return this.json(route, 502, { error: "upstream" });
       const input = (body()["input"] ?? {}) as { profile?: { sessionNumber?: number } };
       if (this.debriefMode === "invalid") return this.json(route, 200, { debrief_text: "Lift 999 kg next time. Do it. Now.", reason_codes_cited: [], numbers_cited: [999], contains_pain_guidance: false, units: "kg" });

@@ -114,13 +114,66 @@ describe("Claude's text", () => {
     expect((await db.debriefs.get("s-1"))?.source).toBe("claude");
   });
 
-  it("being offline, over the limit or not yet allowed is not a failed attempt", async () => {
+  it("being offline or not yet allowed is not a failed attempt", async () => {
     await ensureDebrief(db, session, input, NOW);
-    for (const kind of ["offline", "rate_limited", "consent_required"] as const) {
+    for (const kind of ["offline", "consent_required"] as const) {
       server.next = () => new BackendError(kind, kind);
-      const r = await requestClaudeDebrief(db, server, "s-1", NOW);
-      expect(r?.attempts).toBe(0);
+      expect((await requestClaudeDebrief(db, server, "s-1", NOW))?.attempts).toBe(0);
     }
+  });
+
+  it("a rate limit backs off longer each time, honours the server's wait, and is not a failed attempt", async () => {
+    await ensureDebrief(db, session, input, NOW);
+    await setClaudeDebrief(db, server, ME, true, NOW);
+    server.next = () => new BackendError("rate_limited", "slow down");
+    const first = await requestClaudeDebrief(db, server, "s-1", NOW);
+    expect(first).toMatchObject({ attempts: 0, deferrals: 1 });
+    expect(Date.parse(first?.nextTryAt ?? "") - NOW.getTime()).toBe(60_000);
+    // Too early: no request is made.
+    const calls = server.calls;
+    await requestClaudeDebrief(db, server, "s-1", new Date(NOW.getTime() + 30_000));
+    expect(server.calls).toBe(calls);
+    const t2 = new Date(NOW.getTime() + 61_000);
+    const second = await requestClaudeDebrief(db, server, "s-1", t2);
+    expect(Date.parse(second?.nextTryAt ?? "") - t2.getTime()).toBe(300_000);
+    // The server asks for 1 hour: that wins over the 30 minute step.
+    server.next = () => new BackendError("rate_limited", "slow down", 3600);
+    const t3 = new Date(t2.getTime() + 301_000);
+    const third = await requestClaudeDebrief(db, server, "s-1", t3);
+    expect(Date.parse(third?.nextTryAt ?? "") - t3.getTime()).toBe(3_600_000);
+    // And it recovers when the limit lifts.
+    server.next = () => GOOD;
+    expect((await retryPending(db, server, new Date(t3.getTime() + 3_601_000)))).toEqual(["s-1"]);
+  });
+
+  it("keeps being rate limited: after several back-offs it counts as a failed attempt so it stops", async () => {
+    await ensureDebrief(db, session, input, NOW);
+    await setClaudeDebrief(db, server, ME, true, NOW);
+    server.next = () => new BackendError("rate_limited", "slow down");
+    let t = NOW.getTime();
+    for (let i = 0; i < 40; i++) {
+      t += 3 * 3_600_000;
+      await retryPending(db, server, new Date(t));
+    }
+    const rec = await db.debriefs.get("s-1");
+    expect(rec?.attempts).toBe(MAX_ATTEMPTS);
+    expect(rec?.source).toBe("fallback");
+  });
+
+  it("requests are sent one at a time", async () => {
+    await ensureDebrief(db, session, input, NOW);
+    await ensureDebrief(db, { id: "s-2" } as SessionRecord, input, NOW);
+    let active = 0;
+    let peak = 0;
+    server.requestDebrief = async () => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((r) => setTimeout(r, 10));
+      active -= 1;
+      return GOOD;
+    };
+    await Promise.all([requestClaudeDebrief(db, server, "s-1", NOW), requestClaudeDebrief(db, server, "s-2", NOW)]);
+    expect(peak).toBe(1);
   });
 });
 

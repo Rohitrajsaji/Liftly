@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildDebriefInput, type SessionRecord } from "@liftly/workout";
 import type { Backend, Session } from "./backend";
-import { claudeDebriefOn, ensureDebrief, requestClaudeDebrief, retryPending } from "./debrief";
+import { claudeDebriefOn, ensureDebrief, MAX_ATTEMPTS, requestClaudeDebrief, retryPending } from "./debrief";
 import type { DebriefRecord, LiftlyDb } from "./db";
 import type { Profile } from "./onboarding";
 
@@ -69,6 +69,22 @@ export function useDebriefs(db: LiftlyDb, backend: Backend | null, session: Sess
       if (changed.length > 0) await load();
     })();
   }, [db, backend, session, online, load]);
+
+  // Rate limited earlier: try again when the back-off ends, while the app is open.
+  useEffect(() => {
+    if (backend === null || session === null || !online) return;
+    const now = Date.now();
+    const due = Object.values(records)
+      .filter((r) => r.source === "fallback" && r.attempts < MAX_ATTEMPTS && r.nextTryAt !== null)
+      .map((r) => Date.parse(r.nextTryAt ?? ""))
+      .filter((t) => Number.isFinite(t));
+    if (due.length === 0) return;
+    const wait = Math.min(Math.max(Math.min(...due) - now, 1000) + 500, 3_600_000);
+    const t = setTimeout(() => {
+      void retryPending(db, backend, new Date()).then(load);
+    }, wait);
+    return () => clearTimeout(t);
+  }, [records, db, backend, session, online, load]);
 
   return { records, waiting, refresh: load };
 }

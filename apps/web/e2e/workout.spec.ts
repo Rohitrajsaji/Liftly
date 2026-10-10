@@ -315,6 +315,21 @@ test.describe("Claude summary (M8)", () => {
     expect(fake.debriefCalls).toBe(2);
   });
 
+  test("rate limited: the fixed text stays, the app backs off instead of asking again, and the workout is unaffected", async ({ page, context }) => {
+    const fake = await signedIn(page, context);
+    await turnOn(page);
+    fake.debriefMode = "limited";
+    await finishOne(page);
+    await expect(page.locator("[data-debrief=fallback]")).toContainText("Workout saved.");
+    expect(fake.debriefCalls).toBe(1);
+    await page.reload();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.waitForTimeout(800);
+    expect(fake.debriefCalls).toBe(1);
+    await expect.poll(() => fake.events.size).toBe(1);
+  });
+
   test("Claude down: the workout and its targets are still saved with the fixed text; the retry can succeed", async ({ page, context }) => {
     const fake = await signedIn(page, context);
     await turnOn(page);

@@ -101,7 +101,10 @@ export function createSupabaseBackend(url: string, key: string): Backend {
         if (error instanceof FunctionsHttpError) {
           const status = (error.context as Response).status;
           if (status === 403) return fail(new BackendError("consent_required", "AI summaries are not turned on"), "Not allowed");
-          if (status === 429) return fail(new BackendError("rate_limited", "Too many requests"), "Too many requests");
+          if (status === 429) {
+            const body = (await (error.context as Response).json().catch(() => ({}))) as { retry_after?: number };
+            return fail(new BackendError("rate_limited", "Too many requests", typeof body.retry_after === "number" ? body.retry_after : undefined), "Too many requests");
+          }
         }
         return fail(error, "Could not get the summary");
       }
