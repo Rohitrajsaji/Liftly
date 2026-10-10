@@ -51,6 +51,17 @@ async function quickWorkout(page: Page) {
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
 }
 
+test("first run shows a getting-started guide that ticks off as you go and disappears after the first workout", async ({ page }) => {
+  await onboard(page);
+  const guide = page.locator("[data-getting-started]");
+  await expect(guide).toBeVisible();
+  await expect(guide.locator("[data-step=done]")).toHaveCount(1);
+  await setupGym(page);
+  await expect(guide.locator("[data-step=done]")).toHaveCount(2);
+  await quickWorkout(page);
+  await expect(guide).toHaveCount(0);
+});
+
 test("first run: gym weights are needed, then today's workout shows calibration for every exercise", async ({ page }) => {
   await onboard(page);
   await expect(page.getByRole("button", { name: "Start workout" })).toHaveCount(0);

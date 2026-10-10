@@ -38,6 +38,7 @@ export function Summary({
   debrief,
   waiting,
   onRetry,
+  onOfferAi,
 }: {
   readonly session: SessionRecord;
   readonly onHome: () => void;
@@ -45,6 +46,8 @@ export function Summary({
   readonly debrief: DebriefRecord | undefined;
   readonly waiting: boolean;
   readonly onRetry?: (() => void) | undefined;
+  /** Signed in with AI summaries off: a way to turn them on. */
+  readonly onOfferAi?: (() => void) | undefined;
 }) {
   const done = session.exercises.filter((e) => e.status === "done").length;
   return (
@@ -56,6 +59,11 @@ export function Summary({
         <ProgressDots done={done} total={session.exercises.length} />
       </div>
       <DebriefCard record={debrief} waiting={waiting} onRetry={onRetry} />
+      {onOfferAi !== undefined && (
+        <button type="button" onClick={onOfferAi} className="-mt-2 min-h-12 self-start rounded-xl text-sm font-medium text-accent underline" data-offer-ai>
+          Want a written summary from AI? Turn it on in Account
+        </button>
+      )}
       <ol className="stagger flex flex-col gap-3" aria-label="Results">
         {session.exercises.map((er) => (
           <li key={er.slotOrder} className="card p-4" data-result={er.exerciseId}>

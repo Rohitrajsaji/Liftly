@@ -334,6 +334,11 @@ export function App() {
             followUps={dueFollowUps(workout.data.state.openFollowUps, new Date())}
             lastDone={workout.lastDone}
             workoutName={workout.workoutName}
+            start={
+              workout.data.state.sessionsDone === 0
+                ? { gymDone: workout.missingLadders.length === 0, accountDone: session !== null, accountAvailable: backend !== null, onAccount: () => setView("consent") }
+                : null
+            }
             onStart={() => {
               workout.start();
               setScreen("workout");
@@ -409,6 +414,15 @@ export function App() {
             debrief={debriefs.records[workout.finished.id]}
             waiting={debriefs.waiting.has(workout.finished.id)}
             onRetry={claudeOn ? () => void debriefs.retry(workout.finished?.id ?? "") : undefined}
+            onOfferAi={
+              backend !== null && session !== null && !claudeOn
+                ? () => {
+                    workout.leaveSummary();
+                    setScreen("home");
+                    setView("account");
+                  }
+                : undefined
+            }
             onHome={() => {
               workout.leaveSummary();
               setScreen("home");

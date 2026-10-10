@@ -13,14 +13,14 @@ export default defineConfig({
       manifest: {
         name: "Liftly",
         short_name: "Liftly",
-        description: "Know what to lift next.",
+        description: "Know what to lift next. A simple gym tracker for beginners.",
         lang: "en-IN",
         start_url: "/",
         scope: "/",
         display: "standalone",
         orientation: "portrait",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
+        theme_color: "#e6e8ec",
+        background_color: "#e6e8ec",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },

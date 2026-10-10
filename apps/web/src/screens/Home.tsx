@@ -26,6 +26,7 @@ export function Home({
   onPlan,
   onAnswer,
   workoutName,
+  start,
 }: {
   readonly plan: readonly PlannedExercise[] | null;
   readonly planError: string | null;
@@ -39,6 +40,8 @@ export function Home({
   readonly onPlan: () => void;
   readonly onAnswer: (painId: string, stillPresent: boolean) => void;
   readonly workoutName: string;
+  /** First-run guide: shown until the first workout is done. */
+  readonly start: { readonly gymDone: boolean; readonly accountDone: boolean; readonly accountAvailable: boolean; readonly onAccount: () => void } | null;
 }) {
   const follow = followUps[0];
   return (
@@ -76,6 +79,19 @@ export function Home({
         </p>
         <p className="text-base text-muted">{lastDone === null ? "Your first workout. Take it easy and find your starting weights." : `Last workout: ${lastDone}`}</p>
       </div>
+      {start !== null && active === null && (
+        <section className="card p-5" aria-label="Getting started" data-getting-started>
+          <p className="text-base font-medium">Getting started</p>
+          <ol className="mt-3 flex flex-col gap-3 text-base">
+            <Step done label="Your plan is ready" />
+            <Step done={start.gymDone} label="Set your gym's weights" hint={start.gymDone ? undefined : "One minute, once. Liftly only suggests weights your gym really has."} />
+            <Step done={false} label="Do your first workout" hint="Start light. Liftly finds your starting weights as you go." />
+            {start.accountAvailable && (
+              <Step done={start.accountDone} label="Save your progress with an account" hint="Optional. Keeps your workouts safe if you change phone." action={start.accountDone ? undefined : { label: "Create account", onClick: start.onAccount }} />
+            )}
+          </ol>
+        </section>
+      )}
       {missingGym && <Note>Liftly needs the weights your gym has before it can suggest anything. It takes about a minute, and you only do it once.</Note>}
       {plan !== null && plan.length > 0 && plan.every((p) => p.prescription?.kind === "calibration" && p.prescription.reasonCode === null) && (
         <Note>
@@ -101,6 +117,26 @@ export function Home({
         </button>
       </div>
     </Screen>
+  );
+}
+
+function Step({ done, label, hint, action }: { readonly done: boolean; readonly label: string; readonly hint?: string | undefined; readonly action?: { readonly label: string; readonly onClick: () => void } | undefined }) {
+  return (
+    <li className="flex items-start gap-3" data-step={done ? "done" : "todo"}>
+      <span aria-hidden="true" className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-sm ${done ? "bg-accent text-accent-ink" : "pressed"}`}>
+        {done ? "✓" : ""}
+      </span>
+      <span>
+        <span className={done ? "text-muted" : "font-medium"}>{label}</span>
+        <span className="sr-only">{done ? " (done)" : " (to do)"}</span>
+        {hint !== undefined && <span className="block text-sm text-muted">{hint}</span>}
+        {action !== undefined && (
+          <button type="button" onClick={action.onClick} className="min-h-12 rounded-xl text-sm font-medium text-accent underline">
+            {action.label}
+          </button>
+        )}
+      </span>
+    </li>
   );
 }
 
