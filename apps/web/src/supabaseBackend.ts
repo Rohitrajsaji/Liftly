@@ -108,8 +108,9 @@ export function createSupabaseBackend(url: string, key: string): Backend {
         }
         if (error instanceof FunctionsHttpError) {
           const res = error.context as Response;
-          const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-          return fail(new BackendError("other", `HTTP ${res.status}: ${body.error ?? body.message ?? "no details"}`), "Could not get the summary");
+          const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string; detail?: string };
+          const what = body.error ?? body.message ?? "no details";
+          return fail(new BackendError("other", `HTTP ${res.status}: ${what}${body.detail ? ` (${body.detail})` : ""}`), "Could not get the summary");
         }
         return fail(error, "Could not get the summary");
       }

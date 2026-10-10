@@ -6,8 +6,10 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Models to try in order (secret DEBRIEF_MODELS, comma separated). When one is rate limited or down, the next one is used.
-const MODELS = (Deno.env.get("DEBRIEF_MODELS") ?? Deno.env.get("DEBRIEF_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b:free,openrouter/free")
+// Models to try in order (secret DEBRIEF_MODELS, comma separated). When one is rate limited, slow or down, the next one is
+// used. Fast instruction models first: the earlier "thinking" models spent their whole time budget reasoning and timed out
+// (live test 2026-10-10: 502 after 49 s).
+const MODELS = (Deno.env.get("DEBRIEF_MODELS") ?? Deno.env.get("DEBRIEF_MODEL") ?? "google/gemma-4-31b-it:free,nvidia/nemotron-3.5-lightning:free,google/gemma-4-26b-a4b-it:free,openrouter/free")
   .split(",")
   .map((m) => m.trim())
   .filter((m) => m !== "");
@@ -15,7 +17,7 @@ const DAILY_CAP = 20;
 // Must match DEBRIEF_CONSENT_VERSION in apps/web/src/debrief.ts: the user has to have accepted exactly this text.
 const CONSENT_VERSION = "ai-debrief-draft-2";
 const MAX_BODY_BYTES = 20_000;
-const TIMEOUT_MS = 25_000; // per model call; free models can be slow
+const TIMEOUT_MS = 18_000; // per model call
 const BUDGET_MS = 55_000; // all attempts together, so the app is never kept waiting longer than this
 const MAX_BACKOFF_MS = 3_000;
 
@@ -36,6 +38,14 @@ Hard rules:
 - If the data is incomplete or inconsistent, say so briefly instead of guessing.
 Reply with ONLY one JSON object, no other text and no markdown, with exactly these fields:
 {"debrief_text": string, "reason_codes_cited": string[], "numbers_cited": number[], "contains_pain_guidance": false, "units": "kg"}`;
+
+/** Every number in the input block, so the model can be told exactly which figures it may write. */
+function numbersIn(value: unknown, out: Set<number> = new Set()): Set<number> {
+  if (typeof value === "number" && Number.isFinite(value)) out.add(value);
+  else if (Array.isArray(value)) for (const v of value) numbersIn(v, out);
+  else if (value !== null && typeof value === "object") for (const v of Object.values(value)) numbersIn(v, out);
+  return out;
+}
 
 /** Free models wrap JSON in prose or code fences now and then: take the first {...} block. The app validates the content. */
 function extractJson(text: string): unknown {
@@ -90,8 +100,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const started = Date.now();
   let rateLimited = false;
   let retryAfterS = 0;
+  const tried: string[] = []; // "model: what happened", returned when nothing worked so the app can show the real reason
+  const allowed = [...numbersIn(input)].sort((a, b) => a - b).join(", ");
   for (const model of MODELS) {
     if (Date.now() - started > BUDGET_MS - 5_000) break;
+    const short = model.split("/").pop() ?? model;
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -99,31 +112,44 @@ Deno.serve(async (req: Request): Promise<Response> => {
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json", "x-title": "Liftly" },
         body: JSON.stringify({
           model,
-          max_tokens: 1500,
+          max_tokens: 700,
           temperature: 0.3,
+          // No hidden reasoning: it is what made earlier models time out. Ignored by models that don't reason.
+          reasoning: { enabled: false },
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `Input block (JSON):\n${JSON.stringify(input)}` },
+            { role: "user", content: `Input block (JSON):\n${JSON.stringify(input)}\n\nThe only numbers you may write: ${allowed}.` },
           ],
         }),
       });
       if (res.status === 429) {
         rateLimited = true;
+        tried.push(`${short}: busy`);
         const wait = Number(res.headers.get("retry-after") ?? "");
         retryAfterS = Math.max(retryAfterS, Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : 60);
         await new Promise((r) => setTimeout(r, Math.min(MAX_BACKOFF_MS, (retryAfterS || 1) * 1000)));
         continue;
       }
-      if (!res.ok) continue;
+      if (!res.ok) {
+        tried.push(`${short}: HTTP ${res.status}`);
+        continue;
+      }
       const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
       const out = extractJson(data.choices?.[0]?.message?.content ?? "");
-      if (out === undefined) continue;
+      if (out === undefined) {
+        tried.push(`${short}: no JSON`);
+        continue;
+      }
       // Count the request only when it produced something, so a provider outage doesn't use up the daily cap.
       await supabase.from("debrief_log").insert({});
       return reply(200, out);
-    } catch {
+    } catch (e) {
       // Timed out or the connection dropped: try the next model.
+      tried.push(`${short}: ${e instanceof DOMException && e.name === "TimeoutError" ? "timed out" : "no connection"}`);
     }
   }
-  return rateLimited ? reply(429, { error: "rate limited", retry_after: retryAfterS || 60 }) : reply(502, { error: "no model answered" });
+  const detail = tried.join("; ");
+  return rateLimited && tried.every((t) => t.endsWith("busy"))
+    ? reply(429, { error: "rate limited", retry_after: retryAfterS || 60, detail })
+    : reply(502, { error: "no model answered", detail });
 });
