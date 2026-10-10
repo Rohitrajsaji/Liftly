@@ -29,7 +29,7 @@ async function signIn(page: Page, mode: "create" | "signin" = "create", email = 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: mode === "create" ? "Create account" : "Sign in", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
 }
 
 async function setup(context: BrowserContext, fake = new FakeSupabase()) {
@@ -49,7 +49,7 @@ test("create an account: nothing uploads before, then plan and consent attach to
   await page.getByLabel("Email").fill(EMAIL);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Create account", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
   expect(fake.signUps).toEqual([EMAIL]);
   await expect(page.getByText("Your plan is saved to your account.")).toBeVisible();
 
@@ -94,7 +94,7 @@ test("password problems are explained: short, wrong, already registered, rate li
   await expect(page.getByRole("alert")).toContainText("email or password isn't right");
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
 });
 
 test("a new phone: signing in to the same account brings back the saved plan", async ({ page, context, browser }) => {
@@ -147,7 +147,7 @@ test("the sign-in survives a reload and works offline", async ({ page, context }
   fake.offline = true;
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your plan" })).toBeVisible();
 });
 
@@ -156,7 +156,7 @@ test("sign out keeps the plan on the phone and the data on the account", async (
   await onboard(page, 3);
   await signIn(page);
   await expect.poll(() => fake.profiles.size).toBe(1);
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "Account", exact: true }).click();
   await expect(page.getByText(`Signed in as ${EMAIL}`)).toBeVisible();
   await expect(page.getByText("Everything is saved to your account.")).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
@@ -171,7 +171,7 @@ test("deleting the account removes the server data and clears the phone", async 
   await signIn(page);
   await expect.poll(() => fake.profiles.size).toBe(1);
 
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "Account", exact: true }).click();
   await page.getByRole("button", { name: "Delete account" }).click();
   // The first tap only asks; nothing is deleted yet.
   await expect(page.getByText("permanently deletes your account")).toBeVisible();
@@ -194,7 +194,7 @@ test("deleting needs a connection and says so", async ({ page, context }) => {
   const fake = await setup(context);
   await onboard(page, 3);
   await signIn(page);
-  await page.getByRole("button", { name: "Account" }).click();
+  await page.getByRole("button", { name: "Account", exact: true }).click();
   await page.getByRole("button", { name: "Delete account" }).click();
   fake.offline = true;
   await context.setOffline(true);
@@ -221,7 +221,7 @@ test("account screens fit the phone: large targets, no sideways scroll", async (
   await page.getByLabel("Email").fill(EMAIL);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Create account", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
-  await page.getByRole("button", { name: "Account" }).click();
+  await expect(page.getByRole("button", { name: "Account", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Account", exact: true }).click();
   await check("account", "Account");
 });

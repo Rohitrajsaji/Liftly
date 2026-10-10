@@ -16,6 +16,9 @@ registerSW({ immediate: true });
 // Ask the browser not to evict local data under storage pressure (logged workouts live here first).
 void navigator.storage?.persist?.().catch(() => undefined);
 
+// Each screen sets its own scroll position; the browser restoring an old one on back makes Today open scrolled down.
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
 const root = document.getElementById("root");
 if (root === null) throw new Error("No #root element");
 

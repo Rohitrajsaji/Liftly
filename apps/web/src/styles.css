@@ -74,56 +74,96 @@ button:disabled.raised {
   box-shadow: inset 3px 3px 6px #d9bfa9, inset -3px -3px 6px #fff4ea;
 }
 
-/* Motion: screens ease in, lists arrive one after another, controls press in. Everything stops for people who ask for reduced motion. */
-@keyframes screen-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* Motion (Rohit, 2026-10-10: smooth, slow and subtle). One curve and three durations everywhere, app and website.
+   Forward screens drift in from the right, Back from the left, tab switches cross-fade. Nothing bounces.
+   Everything stops for people who ask for reduced motion. */
+:root {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-screen: 520ms;
+  --t-item: 460ms;
+  --t-control: 280ms;
 }
-@keyframes pop {
-  0% {
-    transform: scale(0.94);
-    opacity: 0.4;
-  }
-  60% {
-    transform: scale(1.03);
-  }
-  100% {
-    transform: none;
-    opacity: 1;
-  }
+@keyframes screen-fwd {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: none; }
 }
-.screen-in {
-  animation: screen-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+@keyframes screen-back {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: none; }
 }
-.stagger > * {
-  animation: screen-in 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }
-.stagger > :nth-child(1) { animation-delay: 0.05s; }
-.stagger > :nth-child(2) { animation-delay: 0.1s; }
-.stagger > :nth-child(3) { animation-delay: 0.15s; }
-.stagger > :nth-child(4) { animation-delay: 0.2s; }
-.stagger > :nth-child(5) { animation-delay: 0.25s; }
-.stagger > :nth-child(6) { animation-delay: 0.3s; }
-.stagger > :nth-child(n + 7) { animation-delay: 0.35s; }
-.pop {
-  animation: pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes settle {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+.screen-fwd { animation: screen-fwd var(--t-screen) var(--ease) both; }
+.screen-back { animation: screen-back var(--t-screen) var(--ease) both; }
+.screen-fade { animation: fade-in var(--t-screen) var(--ease) both; }
+.screen-in { animation: rise var(--t-screen) var(--ease) both; }
+.fade-in { animation: fade-in var(--t-item) var(--ease) both; }
+.rise { animation: rise var(--t-item) var(--ease) both; }
+/* Lists arrive one after another, 70 ms apart, after the screen has started to settle. */
+.stagger > * { animation: rise var(--t-item) var(--ease) both; }
+.stagger > :nth-child(1) { animation-delay: 120ms; }
+.stagger > :nth-child(2) { animation-delay: 190ms; }
+.stagger > :nth-child(3) { animation-delay: 260ms; }
+.stagger > :nth-child(4) { animation-delay: 330ms; }
+.stagger > :nth-child(5) { animation-delay: 400ms; }
+.stagger > :nth-child(6) { animation-delay: 470ms; }
+.stagger > :nth-child(n + 7) { animation-delay: 540ms; }
+/* A logged set settles into its list. */
+.pop { animation: settle var(--t-item) var(--ease) both; }
+/* Chart lines draw themselves in; bars grow from the left. */
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.draw-line {
+  stroke-dasharray: 1;
+  animation: draw 1.2s var(--ease) 0.2s both;
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: none; }
+}
+.grow-x {
+  transform-origin: left center;
+  animation: grow-x 0.9s var(--ease) 0.25s both;
+}
+/* Placeholder while the AI summary is being written. */
+.shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.55) 50%, transparent 100%) var(--color-bg);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
 }
 button,
-summary {
+summary,
+a {
   transition:
-    box-shadow 0.18s ease,
-    transform 0.14s ease,
-    background-color 0.2s ease,
-    color 0.2s ease;
+    box-shadow var(--t-control) var(--ease),
+    transform var(--t-control) var(--ease),
+    background-color var(--t-control) var(--ease),
+    color var(--t-control) var(--ease),
+    opacity var(--t-control) var(--ease);
 }
 button:active:not(:disabled) {
   transform: scale(0.97);
+}
+/* Page titles take focus so screen readers announce them; they never show a focus ring. */
+[data-screen-title]:focus,
+[data-screen-title]:focus-visible {
+  outline: none;
 }
 /* Website: smooth anchor scrolling, reveal on scroll, a gentle float on the sample card, a highlight on the section you jump to. */
 html {
@@ -135,9 +175,9 @@ html {
 }
 [data-reveal] {
   transition:
-    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0ms),
-    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0ms),
-    box-shadow 0.25s ease;
+    opacity 0.8s var(--ease) var(--d, 0ms),
+    transform 0.8s var(--ease) var(--d, 0ms),
+    box-shadow var(--t-control) var(--ease);
 }
 .lift:hover {
   transform: translateY(-4px);
@@ -160,7 +200,8 @@ html {
   html {
     scroll-behavior: auto;
   }
-  .float-slow {
+  .float-slow,
+  .shimmer {
     animation: none !important;
   }
   *,
@@ -171,14 +212,21 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
-@keyframes fade-in {
-  from {
-    opacity: 0;
+/* On a wide screen the app sits in a phone-width panel instead of a narrow strip on a large grey page. */
+@media (min-width: 768px) {
+  body:has(.app-frame) {
+    background: #dcdfe4;
   }
-  to {
-    opacity: 1;
+  .app-frame {
+    margin-block: 2rem;
+    min-height: calc(100dvh - 4rem);
+    border-radius: 2.5rem;
+    background: var(--color-bg);
+    padding-inline: 1.5rem;
+    box-shadow: 12px 12px 28px var(--shadow-dark), -12px -12px 28px var(--shadow-light);
   }
 }
-.fade-in {
-  animation: fade-in 0.4s ease both;
+/* Anything scrolled into view (focus, jump links) stops above the bottom button bar instead of under it. */
+html:has(.app-frame) {
+  scroll-padding-bottom: 8rem;
 }

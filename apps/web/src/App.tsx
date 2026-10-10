@@ -14,7 +14,7 @@ import { Home, dueFollowUps } from "./screens/Home";
 import { Progress } from "./screens/Progress";
 import { PainReport, PainResult } from "./screens/Pain";
 import { Summary } from "./screens/Summary";
-import { Workout } from "./screens/Workout";
+import { targetOf, Workout } from "./screens/Workout";
 import { Experience } from "./screens/Experience";
 import { Preview } from "./screens/Preview";
 import { ProgramChoice } from "./screens/ProgramChoice";
@@ -27,6 +27,7 @@ import { createSupabaseBackend } from "./supabaseBackend";
 import { flushOutbox, pendingCount } from "./sync";
 
 import { useWorkout } from "./useWorkout";
+import { LinkButton, MotionContext, type MotionDir } from "./ui";
 import { exerciseName as exerciseNameOf } from "./gym";
 
 type View = "onboarding" | "consent" | "auth" | "account";
@@ -45,6 +46,9 @@ export function App() {
   const [claudeOn, setClaudeOn] = useState(false);
   const backRef = useRef<(() => void) | null>(null);
   const pushed = useRef(false);
+  // Motion direction for the next screen change: set just before navigating; anything unset counts as forward.
+  const pendingDir = useRef<MotionDir | null>(null);
+  const shown = useRef<{ key: string; dir: MotionDir }>({ key: "", dir: "fade" });
   const skipPop = useRef(false);
   const hasBackRef = useRef(false);
   // After every render: keep one history entry while a screen has a Back, so the phone's back gesture steps back in the app.
@@ -66,6 +70,7 @@ export function App() {
         return;
       }
       pushed.current = false;
+      pendingDir.current = "back";
       backRef.current?.();
     };
     window.addEventListener("popstate", onPop);
@@ -137,7 +142,9 @@ export function App() {
 
   // Move focus to the new screen's heading so screen readers announce it.
   useEffect(() => {
-    main.current?.querySelector<HTMLElement>("[data-screen-title]")?.focus();
+    // A new screen starts at the top, header included; focusing the title must not scroll it away.
+    window.scrollTo({ top: 0 });
+    main.current?.querySelector<HTMLElement>("[data-screen-title]")?.focus({ preventScroll: true });
   }, [profile?.step, view, screen, exIndex]);
 
   const update = useCallback(
@@ -166,6 +173,13 @@ export function App() {
   const debriefs = useDebriefs(db, backend, claudeOn ? session : null, profile ?? NEW_PROFILE, workout.data.sessions, workout.finished, online);
 
   if (profile === null) return null;
+  /** Wraps an action that goes back, so the next screen slides in from the left. */
+  const goingBack =
+    <A extends unknown[]>(fn: (...a: A) => void) =>
+    (...a: A) => {
+      pendingDir.current = "back";
+      fn(...a);
+    };
   const onboarded = isOnboarded(profile) && profile.step === "preview" && profile.programId !== null;
   const where: Screen | "intro" = screen ?? (workout.hasProgress ? "home" : "intro");
   const accountPrompt = backend !== null && session === null ? { onCreate: () => setView("consent") } : null;
@@ -214,62 +228,86 @@ export function App() {
   backRef.current = backAction;
   hasBackRef.current = backAction !== null;
   const goBack = () => {
+    pendingDir.current = "back";
     if (pushed.current) history.back();
     else backRef.current?.();
   };
+  // Each screen gets a key; a new key restarts its entrance animation in the direction it was reached.
+  const screenKey = `${view}|${profile.step}|${onboarded ? where : "-"}|${where === "exercise" ? exIndex : ""}`;
+  if (shown.current.key !== screenKey) {
+    shown.current = { key: screenKey, dir: shown.current.key === "" ? "fade" : (pendingDir.current ?? "forward") };
+    pendingDir.current = null;
+  }
+  const inWorkout = where === "workout" || where === "exercise" || where === "pain" || where === "pain_result" || where === "summary" || where === "gym";
 
   const accountButton =
-    backend === null || view !== "onboarding" ? null : (
-      <button type="button" onClick={() => setView(session === null ? "consent" : "account")} className="min-h-12 rounded-xl px-3 text-base font-medium text-accent underline">
-        {session === null ? "Sign in" : "Account"}
+    backend === null || view !== "onboarding" || (onboarded && inWorkout) ? null : (
+      <button
+        type="button"
+        onClick={() => setView(session === null ? "consent" : "account")}
+        aria-label={session === null ? "Sign in" : "Account"}
+        data-account-button
+        className="raised grid size-12 place-items-center rounded-full text-ink"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+          <circle cx="12" cy="8.5" r="3.5" />
+          <path d="M5 19.5c1.4-3.2 4-4.8 7-4.8s5.6 1.6 7 4.8" />
+        </svg>
+        {session !== null && <span aria-hidden="true" className="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-accent" />}
       </button>
     );
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="app-frame mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-x-clip px-4 pt-[max(1rem,env(safe-area-inset-top))]">
       <header className="flex min-h-14 items-center justify-between gap-3">
-        <span className="flex items-center gap-1">
-          {backAction !== null && (
-            <button type="button" onClick={goBack} aria-label="Previous screen" data-back className="raised -ml-1 grid size-12 place-items-center rounded-full text-ink fade-in">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M15 5l-7 7 7 7" />
-              </svg>
-            </button>
-          )}
+        <span className="flex items-center gap-2">
+          {/* The back arrow has a fixed slot, so the name never jumps sideways when it appears. */}
+          <span className="grid size-12 place-items-center">
+            {backAction !== null && (
+              <button type="button" onClick={goBack} aria-label="Previous screen" data-back className="raised grid size-12 place-items-center rounded-full text-ink fade-in">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 5l-7 7 7 7" />
+                </svg>
+              </button>
+            )}
+            {backAction === null && <img src="/icon.svg" alt="" aria-hidden="true" className="size-9 rounded-xl" />}
+          </span>
           <span className="text-xl font-semibold tracking-tight">Liftly</span>
         </span>
         <span className="flex items-center gap-2">
           {!online && (
-            <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted">
+            <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted fade-in">
               Offline
             </span>
           )}
           {session !== null && pending > 0 && (
-            <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted" data-sync-pending>
+            <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted fade-in" data-sync-pending>
               Waiting to sync
             </span>
           )}
-          {install !== null && view === "onboarding" && (
-            <button type="button" onClick={install} className="min-h-12 rounded-xl px-3 text-base font-medium text-accent underline">
-              Install app
-            </button>
-          )}
-          {accountButton}
+          {install !== null && view === "onboarding" && !inWorkout && <LinkButton onClick={install}>Install app</LinkButton>}
+          {accountButton !== null && <span className="relative">{accountButton}</span>}
         </span>
       </header>
       {view === "onboarding" && onboarded && workout.ready && (where === "home" || where === "progress" || where === "history") && (
         <nav aria-label="Sections" className="pressed mt-1 grid grid-cols-3 gap-1 rounded-full p-1">
           {(["home", "progress", "history"] as const).map((t) => (
-            <button key={t} type="button" aria-current={where === t ? "page" : undefined} onClick={() => setScreen(t)} className={`min-h-12 rounded-full text-base ${where === t ? "raised font-medium text-accent" : "text-muted"}`}>
+            <button key={t} type="button" aria-current={where === t ? "page" : undefined} onClick={() => {
+                if (t === where) return;
+                pendingDir.current = "fade";
+                setScreen(t);
+              }} className={`min-h-12 rounded-full text-base ${where === t ? "raised font-medium text-accent" : "text-muted"}`}>
               {t === "home" ? "Today" : t === "progress" ? "Progress" : "History"}
             </button>
           ))}
         </nav>
       )}
-      <main ref={main} className="flex flex-1 flex-col pb-4 pt-4">
+      <main ref={main} className="flex flex-1 flex-col pt-4">
+        <MotionContext.Provider value={shown.current.dir}>
+        <div key={screenKey} className="flex flex-1 flex-col">
         {view === "consent" && (
           <Consent
-            onBack={() => setView("onboarding")}
+            onBack={goingBack(() => setView("onboarding"))}
             onAccept={() => {
               void recordConsent(db, new Date()).then(() => setView("auth"));
             }}
@@ -277,7 +315,7 @@ export function App() {
         )}
         {view === "auth" && backend !== null && (
           <AuthStep
-            onBack={() => setView("onboarding")}
+            onBack={goingBack(() => setView("onboarding"))}
             onSubmit={async (mode, email, password) =>
               finishSignIn(mode === "create" ? await backend.signUp(email, password) : await backend.signIn(email, password))
             }
@@ -287,7 +325,7 @@ export function App() {
           <Account
             email={session.email}
             pending={pending}
-            onBack={() => setView("onboarding")}
+            onBack={goingBack(() => setView("onboarding"))}
             onSignOut={async () => {
               await backend.signOut();
               setSession(null);
@@ -314,16 +352,16 @@ export function App() {
         )}
         {view === "onboarding" && profile.step === "welcome" && <Welcome onStart={() => update(next(profile))} />}
         {view === "onboarding" && profile.step === "experience" && (
-          <Experience initial={profile.monthsTraining} onBack={() => update(back(profile))} onDone={(m) => update(next({ ...profile, monthsTraining: m }))} />
+          <Experience initial={profile.monthsTraining} onBack={goingBack(() => update(back(profile)))} onDone={(m) => update(next({ ...profile, monthsTraining: m }))} />
         )}
         {view === "onboarding" && profile.step === "program" && (
-          <ProgramChoice initial={profile.programId} onBack={() => update(back(profile))} onDone={(id) => update(next({ ...profile, programId: id }))} />
+          <ProgramChoice initial={profile.programId} onBack={goingBack(() => update(back(profile)))} onDone={(id) => update(next({ ...profile, programId: id }))} />
         )}
         {view === "onboarding" && onboarded && profile.programId !== null && where === "intro" && (
           <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onContinue={() => setScreen("home")} />
         )}
         {view === "onboarding" && onboarded && profile.programId !== null && where === "plan" && (
-          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onBack={() => setScreen("home")} />
+          <Preview programId={profile.programId} onChangeProgram={() => update(changeProgram(profile))} account={account} onBack={goingBack(() => setScreen("home"))} />
         )}
         {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "home" && workout.finished === null && (
           <Home
@@ -340,8 +378,13 @@ export function App() {
                 : null
             }
             onStart={() => {
-              workout.start();
-              setScreen("workout");
+              // Straight into the first exercise; the list stays one tap away.
+              const started = workout.start();
+              const first = started?.exercises.findIndex((e) => e.status === "pending") ?? -1;
+              if (first >= 0) {
+                setExIndex(first);
+                setScreen("exercise");
+              } else setScreen("workout");
             }}
             onContinue={() => setScreen("workout")}
             onGym={() => setScreen("gym")}
@@ -349,7 +392,7 @@ export function App() {
             onAnswer={(id, still) => void workout.answerFollowUp(id, still)}
           />
         )}
-        {view === "onboarding" && onboarded && workout.ready && where === "progress" && <Progress sessions={workout.data.sessions} />}
+        {view === "onboarding" && onboarded && workout.ready && where === "progress" && workout.ctx !== null && <Progress sessions={workout.data.sessions} programId={workout.ctx.programId} plan={workout.plan} />}
         {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "history" && <History sessions={workout.data.sessions} programId={workout.ctx.programId} debriefs={debriefs.records} onRetry={claudeOn ? (id) => void debriefs.retry(id) : undefined} />}
         {view === "onboarding" && onboarded && workout.ctx !== null && where === "gym" && (
           <GymSetup
@@ -384,15 +427,20 @@ export function App() {
             index={exIndex}
             previous={exerciseState(workout.data.state, workout.active.exercises[exIndex]?.exerciseId ?? "").lastPerformance}
             onUpdate={workout.update}
-            onList={() => setScreen("workout")}
+            onList={goingBack(() => setScreen("workout"))}
             onNext={nextOpen(exIndex) === null ? null : () => setExIndex(nextOpen(exIndex) ?? exIndex)}
+            upNext={(() => {
+              const n = nextOpen(exIndex);
+              const er = n === null ? undefined : workout.active.exercises[n];
+              return er === undefined ? null : { name: exerciseNameOf(er.exerciseId), target: targetOf(er) };
+            })()}
             onPain={() => setScreen("pain")}
           />
         )}
         {view === "onboarding" && onboarded && workout.active !== null && workout.ctx !== null && where === "pain" && (
           <PainReport
             exerciseName={exerciseNameOf(workout.active.exercises[exIndex]?.exerciseId ?? "")}
-            onCancel={() => setScreen("exercise")}
+            onCancel={goingBack(() => setScreen("exercise"))}
             onSubmit={(input) => {
               const cur = workout.active;
               const ctx = workout.ctx;
@@ -410,6 +458,7 @@ export function App() {
         {view === "onboarding" && onboarded && where === "summary" && workout.finished !== null && (
           <Summary
             session={workout.finished}
+            sessions={workout.data.sessions}
             accountPrompt={accountPrompt}
             debrief={debriefs.records[workout.finished.id]}
             waiting={debriefs.waiting.has(workout.finished.id)}
@@ -429,6 +478,8 @@ export function App() {
             }}
           />
         )}
+        </div>
+        </MotionContext.Provider>
       </main>
     </div>
   );

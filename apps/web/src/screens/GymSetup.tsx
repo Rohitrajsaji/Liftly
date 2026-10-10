@@ -88,7 +88,7 @@ export function GymSetup({ programId, ladders, custom, onSave, onDone, locked }:
                   <span className="block text-base">{exerciseName(id)}</span>
                   <span className="text-sm text-muted">{custom.includes(id) ? "Its own list" : `Uses the ${EQUIPMENT_LABEL[k].toLowerCase()} list`}</span>
                 </span>
-                <button type="button" onClick={() => setTarget({ kind: "exercise", exerciseId: id, equipment: k })} className="min-h-12 rounded-xl px-3 text-base font-medium text-accent underline">
+                <button type="button" onClick={() => setTarget({ kind: "exercise", exerciseId: id, equipment: k })} className="min-h-12 text-base font-medium text-accent underline underline-offset-4">
                   Edit
                 </button>
               </li>

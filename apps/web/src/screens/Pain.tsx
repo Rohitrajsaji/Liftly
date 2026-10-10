@@ -43,12 +43,25 @@ export function PainReport({ exerciseName, onCancel, onSubmit }: { readonly exer
       </fieldset>
       <fieldset>
         <legend className="mb-2 text-base font-medium">How strong is it? (0 none, 10 worst)</legend>
-        <div className="grid grid-cols-6 gap-2">
+        {/* One even row, 0 on the left and 10 on the right, like a scale. */}
+        <div className="pressed grid grid-cols-11 gap-0.5 rounded-full p-1">
           {Array.from({ length: 11 }, (_, n) => (
-            <button key={n} type="button" aria-pressed={severity === n} aria-label={`Pain ${n} out of 10`} data-severity={n} onClick={() => setSeverity(n)} className={pill(severity === n)}>
+            <button
+              key={n}
+              type="button"
+              aria-pressed={severity === n}
+              aria-label={`Pain ${n} out of 10`}
+              data-severity={n}
+              onClick={() => setSeverity(n)}
+              className={`min-h-12 rounded-full text-base tabular-nums ${severity === n ? "bg-accent font-medium text-accent-ink" : "text-ink"}`}
+            >
               {n}
             </button>
           ))}
+        </div>
+        <div className="mt-1 flex justify-between px-2 text-xs text-muted" aria-hidden="true">
+          <span>None</span>
+          <span>Worst</span>
         </div>
       </fieldset>
       <YesNo legend="Does it hurt when you are resting, or at night?" value={rest} onChange={setRest} name="rest" pill={pill} />
