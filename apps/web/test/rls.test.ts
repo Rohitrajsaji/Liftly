@@ -6,7 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const migration = (name: string) => readFileSync(join(__dirname, "..", "..", "..", "supabase", "migrations", name), "utf8");
-const MIGRATIONS = ["0001_accounts.sql", "0002_workouts.sql"].map(migration);
+const MIGRATIONS = ["0001_accounts.sql", "0002_workouts.sql", "0003_debrief_log.sql"].map(migration);
 
 const ALICE = "11111111-1111-1111-1111-111111111111";
 const BOB = "22222222-2222-2222-2222-222222222222";
@@ -179,5 +179,25 @@ describe("workout history and ladders (M6)", () => {
     await db.exec("reset role");
     expect((await db.query("select * from public.events")).rows).toEqual([]);
     expect((await db.query("select * from public.ladders")).rows).toEqual([]);
+  });
+});
+
+describe("debrief_log (M8 request cap)", () => {
+  const DAN = "44444444-4444-4444-4444-444444444444";
+  const ERIN = "55555555-5555-5555-5555-555555555555";
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users values ('${DAN}'), ('${ERIN}')`);
+  });
+  it("a user logs and counts only their own requests", async () => {
+    await as(DAN, "insert into public.debrief_log default values");
+    await as(DAN, "insert into public.debrief_log default values");
+    expect(await as(DAN, "select count(*)::int as n from public.debrief_log")).toEqual([{ n: 2 }]);
+    expect(await as(ERIN, "select count(*)::int as n from public.debrief_log")).toEqual([{ n: 0 }]);
+  });
+  it("cannot log in someone else's name, edit or delete, and anon is refused", async () => {
+    await expect(as(ERIN, "insert into public.debrief_log (user_id) values ($1)", [DAN])).rejects.toThrow(/row-level security/);
+    await expect(as(DAN, "update public.debrief_log set created_at = now()")).rejects.toThrow(/permission denied/);
+    await expect(as(DAN, "delete from public.debrief_log")).rejects.toThrow(/permission denied/);
+    await expect(as(null, "select * from public.debrief_log")).rejects.toThrow(/permission denied/);
   });
 });

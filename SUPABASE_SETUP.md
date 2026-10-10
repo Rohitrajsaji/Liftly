@@ -13,7 +13,12 @@ What to create, what to change, and which values to send. About 15 minutes. All 
    It creates two tables (`profiles`, `consents`), their privacy rules, and the delete-my-account function. It does not touch any other setting.
    Then do the same with [`supabase/migrations/0002_workouts.sql`](supabase/migrations/0002_workouts.sql) (M6: workouts and gym weights; run it after 0001).
 3. **Turn off email confirmation.** Liftly signs in with an email and a password, so no email template is needed. Open **Authentication → Sign In / Providers → Email**: keep "Enable Email provider" and "Enable email signups" on, and turn **"Confirm email" OFF**. Save.
-4. **Send me two values** (both are safe to paste in the thread; they are designed to be public in the app):
+4. **Claude summaries (M8, optional until you want them).** Without this the app shows fixed summary text after each workout.
+   - Run [`supabase/migrations/0003_debrief_log.sql`](supabase/migrations/0003_debrief_log.sql) in the SQL Editor (it only counts requests, to cap cost: 20 per account per day).
+   - Create an Anthropic API key at console.anthropic.com (set a monthly spend limit there). **Do not paste it in the thread or the app.** In Supabase open **Edge Functions → Secrets** and add `ANTHROPIC_API_KEY`.
+   - Deploy the function: in **Edge Functions → Deploy a new function → Via Editor**, name it `debrief`, paste [`supabase/functions/debrief/index.ts`](supabase/functions/debrief/index.ts), and deploy (leave "Verify JWT" on).
+   - In the app: Account → Claude workout summaries → Turn on. Each person chooses this themselves.
+5. **Send me two values** (both are safe to paste in the thread; they are designed to be public in the app):
    - **Project URL**, like `https://abcdxyz.supabase.co` (Project Settings → Data API or General)
    - **Publishable key**, starting `sb_publishable_` (Project Settings → API Keys). The older "anon" key also works.
 

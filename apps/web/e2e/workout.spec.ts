@@ -249,6 +249,88 @@ test.describe("with an account", () => {
   });
 });
 
+test.describe("Claude summary (M8)", () => {
+  async function signedIn(page: Page, context: import("@playwright/test").BrowserContext) {
+    const fake = new FakeSupabase();
+    await fake.install(context);
+    await onboard(page);
+    await setupGym(page);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByRole("button", { name: "I agree and continue" }).click();
+    await page.getByLabel("Email").fill("rohit@example.com");
+    await page.getByLabel("Password", { exact: true }).fill("correct horse 9");
+    await page.getByRole("button", { name: "Create account", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+    return fake;
+  }
+  const turnOn = async (page: Page) => {
+    await page.getByRole("button", { name: "Account" }).click();
+    await page.getByRole("button", { name: "Turn on…" }).click();
+    await expect(page.getByText("No name, email or phone number is sent.")).toBeVisible();
+    await page.getByRole("button", { name: "I agree, turn on" }).click();
+    await expect(page.getByText("On. After each workout Claude writes")).toBeVisible();
+    await page.getByRole("button", { name: "Back" }).click();
+  };
+  const finishOne = async (page: Page) => {
+    await page.getByRole("button", { name: "Start workout" }).click();
+    await page.locator("[data-exercise-row]").first().click();
+    await tap(page, "good");
+    await page.getByRole("button", { name: "Workout list" }).click();
+    await page.getByRole("button", { name: "Finish workout" }).click();
+    await expect(page.getByRole("heading", { name: "Workout saved" })).toBeVisible();
+  };
+
+  test("off by default: the fixed summary shows and nothing is sent to Claude", async ({ page, context }) => {
+    const fake = await signedIn(page, context);
+    await finishOne(page);
+    await expect(page.locator("[data-debrief=fallback]")).toContainText("Workout saved.");
+    await page.waitForTimeout(400);
+    expect(fake.debriefCalls).toBe(0);
+  });
+
+  test("turned on: Claude's checked text replaces the fixed one, and History keeps it", async ({ page, context }) => {
+    const fake = await signedIn(page, context);
+    await turnOn(page);
+    expect([...fake.consents.values()].map((c) => c.consent_version)).toContain("claude-debrief-draft-1");
+    await finishOne(page);
+    await expect(page.locator("[data-debrief=claude]")).toContainText("You finished session 1 of your plan.");
+    expect(fake.debriefCalls).toBe(1);
+    await page.getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await page.locator("[data-history-item] summary").first().click();
+    await expect(page.locator("[data-history-debrief]")).toContainText("You finished session 1");
+  });
+
+  test("an unusable answer keeps the fixed text, retries once later, then stops", async ({ page, context }) => {
+    const fake = await signedIn(page, context);
+    await turnOn(page);
+    fake.debriefMode = "invalid";
+    await finishOne(page);
+    await expect(page.locator("[data-debrief=fallback]")).toContainText("Workout saved.");
+    expect(fake.debriefCalls).toBe(1);
+    await page.reload();
+    await expect.poll(() => fake.debriefCalls).toBe(2);
+    await page.reload();
+    await page.waitForTimeout(600);
+    expect(fake.debriefCalls).toBe(2);
+  });
+
+  test("Claude down: the workout and its targets are still saved with the fixed text; the retry can succeed", async ({ page, context }) => {
+    const fake = await signedIn(page, context);
+    await turnOn(page);
+    fake.debriefMode = "down";
+    await finishOne(page);
+    await expect(page.locator("[data-debrief=fallback]")).toBeVisible();
+    await expect.poll(() => fake.events.size).toBe(1);
+    fake.debriefMode = "ok";
+    await page.reload();
+    await expect.poll(() => fake.debriefCalls).toBe(2);
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await page.locator("[data-history-item] summary").first().click();
+    await expect(page.locator("[data-history-debrief]")).toContainText("You finished session 1");
+  });
+});
+
 test.describe("progress and history", () => {
   test("empty before the first workout; then history, records, chart and weekly count appear (works offline)", async ({ page, context }) => {
     await onboard(page);

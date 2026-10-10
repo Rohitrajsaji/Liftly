@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, FunctionsFetchError, FunctionsHttpError, type SupabaseClient } from "@supabase/supabase-js";
 import { BackendError, type Backend, type ConsentRow, type EventRow, type LadderRow, type ProfileRow, type Session } from "./backend";
 
 interface ErrorLike {
@@ -93,6 +93,19 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       const { data, error } = await client.from("events").select("id, user_id, kind, occurred_at, data").order("occurred_at", { ascending: true });
       if (error) return fail(error, "Could not load workouts");
       return (data ?? []) as EventRow[];
+    },
+    async requestDebrief(input: unknown) {
+      const { data, error } = await client.functions.invoke("debrief", { body: { input } });
+      if (error) {
+        if (error instanceof FunctionsFetchError) return fail(new BackendError("offline", "No connection"), "Could not reach Claude");
+        if (error instanceof FunctionsHttpError) {
+          const status = (error.context as Response).status;
+          if (status === 403) return fail(new BackendError("consent_required", "Claude summaries are not turned on"), "Not allowed");
+          if (status === 429) return fail(new BackendError("rate_limited", "Too many requests"), "Too many requests");
+        }
+        return fail(error, "Could not get the summary");
+      }
+      return data as unknown;
     },
     async fetchLadders() {
       const { data, error } = await client.from("ladders").select("user_id, exercise_id, loads_g, updated_at");

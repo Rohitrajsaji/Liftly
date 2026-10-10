@@ -7,7 +7,7 @@ Liftly is a workout app for gym beginners. It tells you what to lift next, and w
 - **Progression Engine v1.0:** frozen.
 - **Phase 0 (manual testing with 3–5 beginners):** ready to run once gym load ladders are recorded.
 - **Architecture and tech stack:** approved 2026-10-07 (TypeScript monorepo, React + Vite PWA, Supabase, progression engine as a pure package). See the architecture plan linked in DECISIONS.md.
-- **Code:** progression engine in `packages/engine`; frozen programs and exercise library in `packages/catalog`; installable web app in `apps/web` (M4 and M5: onboarding, plan preview, email + password accounts, sync, offline); Supabase schema in `supabase/migrations`. See CLAUDE.md for commands.
+- **Code:** progression engine in `packages/engine`; frozen programs and exercise library in `packages/catalog`; installable web app in `apps/web` (M4 and M5: onboarding, plan preview, email + password accounts, sync, offline); Supabase schema in `supabase/migrations`; the optional Claude debrief runs in `supabase/functions/debrief` (M8). See CLAUDE.md for commands.
 - **Programs:** frozen 3-day and 4-day programs in PROGRAMS.md.
 
 ## Document map

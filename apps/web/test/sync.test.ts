@@ -73,6 +73,10 @@ class FakeServer implements Backend {
     this.check();
     return [...this.events.values()].filter((e) => e.user_id === this.user.userId);
   }
+  async requestDebrief(): Promise<unknown> {
+    this.check();
+    return {};
+  }
   async fetchLadders() {
     this.check();
     return [...this.ladders.values()].filter((l) => l.user_id === this.user.userId);

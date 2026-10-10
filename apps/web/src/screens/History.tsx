@@ -2,6 +2,7 @@
 
 import { slot, type SlotKey } from "@liftly/catalog";
 import { formatKg, history, type SessionRecord } from "@liftly/workout";
+import type { DebriefRecord } from "../db";
 import { exerciseName } from "../gym";
 import { Screen } from "../ui";
 
@@ -10,7 +11,7 @@ const longDate = (d: string): string => {
   return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, day ?? 1)).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 };
 
-export function History({ sessions, programId }: { readonly sessions: readonly SessionRecord[]; readonly programId: "3-day" | "4-day" }) {
+export function History({ sessions, programId, debriefs }: { readonly sessions: readonly SessionRecord[]; readonly programId: "3-day" | "4-day"; readonly debriefs: Readonly<Record<string, DebriefRecord>> }) {
   const items = history(sessions);
   const nameOf = (k: string): string => {
     try {
@@ -41,6 +42,11 @@ export function History({ sessions, programId }: { readonly sessions: readonly S
                 </span>
                 <span className="text-sm text-muted">{it.completion === "full" ? "Complete" : "Partial"}</span>
               </summary>
+              {debriefs[it.id] !== undefined && (
+                <p className="mt-3 text-sm text-muted" data-history-debrief>
+                  {debriefs[it.id]?.text}
+                </p>
+              )}
               <ul className="mt-3 divide-y divide-line">
                 {it.exercises.map((e) => (
                   <li key={e.exerciseId} className="py-3">

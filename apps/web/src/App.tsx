@@ -19,6 +19,8 @@ import { Experience } from "./screens/Experience";
 import { Preview } from "./screens/Preview";
 import { ProgramChoice } from "./screens/ProgramChoice";
 import { AuthStep } from "./screens/SignIn";
+import { claudeDebriefOn, setClaudeDebrief } from "./debrief";
+import { useDebriefs } from "./useDebriefs";
 import { Welcome } from "./screens/Welcome";
 import { useInstallPrompt, useOnline } from "./shell";
 import { createSupabaseBackend } from "./supabaseBackend";
@@ -40,11 +42,15 @@ export function App() {
   const [view, setView] = useState<View>("onboarding");
   const [pending, setPending] = useState(0);
   const online = useOnline();
+  const [claudeOn, setClaudeOn] = useState(false);
   const install = useInstallPrompt();
   const main = useRef<HTMLElement>(null);
   const joining = useRef(false);
   const sessionRef = useRef<Session | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    void claudeDebriefOn(db).then(setClaudeOn);
+  }, [session, reloadKey]);
   const [screen, setScreen] = useState<Screen | "intro" | null>(null);
   const [exIndex, setExIndex] = useState(0);
   const [painOutcome, setPainOutcome] = useState<{ onSwap: boolean; professionalHelp: boolean } | null>(null);
@@ -129,6 +135,7 @@ export function App() {
     void flush(sessionRef.current);
   }, [flush]);
   const workout = useWorkout(db, profile ?? NEW_PROFILE, session, onSaved, reloadKey);
+  const debriefs = useDebriefs(db, backend, claudeOn ? session : null, profile ?? NEW_PROFILE, workout.data.sessions, workout.finished, online);
 
   if (profile === null) return null;
   const onboarded = isOnboarded(profile) && profile.step === "preview" && profile.programId !== null;
@@ -218,6 +225,12 @@ export function App() {
               setPending(0);
               setView("onboarding");
             }}
+            claudeOn={claudeOn}
+            onClaude={async (on) => {
+              await setClaudeDebrief(db, backend, session, on, new Date());
+              setClaudeOn(await claudeDebriefOn(db));
+              await debriefs.refresh();
+            }}
             onDelete={async () => {
               await backend.deleteAccount();
               await wipeLocalData(db);
@@ -263,7 +276,7 @@ export function App() {
           />
         )}
         {view === "onboarding" && onboarded && workout.ready && where === "progress" && <Progress sessions={workout.data.sessions} />}
-        {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "history" && <History sessions={workout.data.sessions} programId={workout.ctx.programId} />}
+        {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "history" && <History sessions={workout.data.sessions} programId={workout.ctx.programId} debriefs={debriefs.records} />}
         {view === "onboarding" && onboarded && workout.ctx !== null && where === "gym" && (
           <GymSetup
             programId={workout.ctx.programId}
@@ -324,6 +337,8 @@ export function App() {
           <Summary
             session={workout.finished}
             accountPrompt={accountPrompt}
+            debrief={debriefs.records[workout.finished.id]}
+            waiting={debriefs.waiting.has(workout.finished.id)}
             onHome={() => {
               workout.leaveSummary();
               setScreen("home");

@@ -38,7 +38,7 @@ export interface LadderRow {
   readonly updated_at: string;
 }
 
-export type BackendErrorKind = "offline" | "rate_limited" | "bad_password" | "exists" | "weak_password" | "confirm_required" | "invalid_email" | "other";
+export type BackendErrorKind = "offline" | "rate_limited" | "bad_password" | "exists" | "weak_password" | "confirm_required" | "invalid_email" | "consent_required" | "other";
 
 export class BackendError extends Error {
   constructor(
@@ -71,4 +71,6 @@ export interface Backend {
   pushLadder(row: LadderRow): Promise<void>;
   fetchEvents(): Promise<EventRow[]>;
   fetchLadders(): Promise<LadderRow[]>;
+  /** Asks Claude (through the debrief function) for the post-workout text. Returns the raw object; the caller validates it. */
+  requestDebrief(input: unknown): Promise<unknown>;
 }

@@ -3,11 +3,36 @@
 import { REP_RANGES } from "@liftly/engine";
 import { exercise } from "@liftly/catalog";
 import { calibrationLine, FIRST_EXPOSURE_LINE, formatKg, PAIN_ON_SWAP_TEXT, PAIN_STOP_TEXT, REASON_LINES, workingSets, workingWeightLine, type ExerciseRecord, type SessionRecord } from "@liftly/workout";
+import type { DebriefRecord } from "../db";
 import { ProgressDots } from "../dots";
 import { exerciseName } from "../gym";
 import { Button, Note, Screen } from "../ui";
 
-export function Summary({ session, onHome, accountPrompt }: { readonly session: SessionRecord; readonly onHome: () => void; readonly accountPrompt: { readonly onCreate: () => void } | null }) {
+export function DebriefCard({ record, waiting }: { readonly record: DebriefRecord | undefined; readonly waiting: boolean }) {
+  if (record === undefined) return null;
+  return (
+    <section className="card-accent p-4" aria-label="Workout summary" data-debrief={waiting ? "waiting" : record.source}>
+      <p className="eyebrow">{record.source === "claude" ? "Summary by Claude" : "Summary"}</p>
+      <p className="mt-1 text-base" role="status">
+        {waiting ? "Writing your summary…" : record.text}
+      </p>
+    </section>
+  );
+}
+
+export function Summary({
+  session,
+  onHome,
+  accountPrompt,
+  debrief,
+  waiting,
+}: {
+  readonly session: SessionRecord;
+  readonly onHome: () => void;
+  readonly accountPrompt: { readonly onCreate: () => void } | null;
+  readonly debrief: DebriefRecord | undefined;
+  readonly waiting: boolean;
+}) {
   const done = session.exercises.filter((e) => e.status === "done").length;
   return (
     <Screen title={session.completion === "full" ? "Workout complete" : "Workout saved"} actions={<Button onClick={onHome}>Done</Button>}>
@@ -17,6 +42,7 @@ export function Summary({ session, onHome, accountPrompt }: { readonly session: 
         </p>
         <ProgressDots done={done} total={session.exercises.length} />
       </div>
+      <DebriefCard record={debrief} waiting={waiting} />
       <ol className="flex flex-col gap-3" aria-label="Results">
         {session.exercises.map((er) => (
           <li key={er.slotOrder} className="card p-4" data-result={er.exerciseId}>
