@@ -106,6 +106,11 @@ export function createSupabaseBackend(url: string, key: string): Backend {
             return fail(new BackendError("rate_limited", "Too many requests", typeof body.retry_after === "number" ? body.retry_after : undefined), "Too many requests");
           }
         }
+        if (error instanceof FunctionsHttpError) {
+          const res = error.context as Response;
+          const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+          return fail(new BackendError("other", `HTTP ${res.status}: ${body.error ?? body.message ?? "no details"}`), "Could not get the summary");
+        }
         return fail(error, "Could not get the summary");
       }
       return data as unknown;

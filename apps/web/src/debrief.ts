@@ -62,10 +62,17 @@ let queue: Promise<unknown> = Promise.resolve();
 
 /** One request to the AI model for a saved debrief, one at a time so a burst can't trip the rate limit. Never throws. */
 export function requestClaudeDebrief(db: LiftlyDb, backend: Backend, sessionId: string, now: Date): Promise<DebriefRecord | null> {
+  // The same workout is never asked for twice at once (the finish flow and the start-up retry can overlap).
+  const running = inFlight.get(sessionId);
+  if (running !== undefined) return running;
   const run = queue.then(() => requestNow(db, backend, sessionId, now));
+  inFlight.set(sessionId, run);
+  const done = () => inFlight.delete(sessionId);
+  run.then(done, done);
   queue = run.catch(() => undefined);
   return run;
 }
+const inFlight = new Map<string, Promise<DebriefRecord | null>>();
 
 async function requestNow(db: LiftlyDb, backend: Backend, sessionId: string, now: Date): Promise<DebriefRecord | null> {
   const rec = await db.debriefs.get(sessionId);
@@ -97,7 +104,7 @@ async function requestNow(db: LiftlyDb, backend: Backend, sessionId: string, now
       const exhausted = rec.deferrals + 1 >= MAX_DEFERRALS;
       return failed(kind, exhausted, new Date(now.getTime() + wait * 1000).toISOString(), true);
     }
-    return failed(kind, true);
+    return failed(e instanceof BackendError && kind === "other" ? e.message : kind, true);
   }
   const check = validateDebrief(raw, rec.input);
   if (!check.ok) return failed(`validation: ${check.reason}`, true);
@@ -117,4 +124,27 @@ export async function retryPending(db: LiftlyDb, backend: Backend, now: Date): P
     if (out !== null && (out.source !== r.source || out.attempts !== r.attempts)) changed.push(r.sessionId);
   }
   return changed;
+}
+
+/** What to tell the user when the fixed text is showing although AI summaries are on. `detail` is the raw reason, kept short for support. */
+export function failureNote(rec: DebriefRecord): { readonly text: string; readonly detail: string | null } | null {
+  if (rec.source === "claude" || rec.lastFailure === null) return null;
+  const f = rec.lastFailure;
+  const text =
+    f === "offline"
+      ? "You're offline, so the AI summary will be written when you're back online."
+      : f === "rate_limited"
+        ? "The free AI model is busy. Liftly will try again by itself."
+        : f === "consent_required"
+          ? "The AI summary isn't allowed on your account yet. Turn it off and on again in Account."
+          : f.startsWith("validation")
+            ? "The AI's text didn't pass Liftly's safety checks, so the fixed summary is shown."
+            : "The AI service didn't answer, so the fixed summary is shown.";
+  return { text, detail: f === "offline" || f === "rate_limited" ? null : f };
+}
+
+/** Lets a person ask again after the automatic tries ran out. */
+export async function resetDebrief(db: LiftlyDb, sessionId: string): Promise<void> {
+  const rec = await db.debriefs.get(sessionId);
+  if (rec !== undefined && rec.source === "fallback") await db.debriefs.put({ ...rec, attempts: 0, deferrals: 0, nextTryAt: null, lastFailure: null });
 }

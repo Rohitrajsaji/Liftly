@@ -84,7 +84,7 @@ export function Home({
       )}
       {planError !== null && !missingGym && <Note tone="warn">{planError}</Note>}
       {plan !== null && (
-        <ol className="flex flex-col gap-4" aria-label="Today's exercises" data-plan>
+        <ol className="stagger flex flex-col gap-4" aria-label="Today's exercises" data-plan>
           {plan.map((p) => (
             <li key={p.slotOrder} className="card p-5" data-exercise-row>
               <PlannedRow p={p} />

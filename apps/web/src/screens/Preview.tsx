@@ -49,7 +49,7 @@ export function Preview({
         </p>
       </div>
       <Note>Your first session of each exercise finds your starting weight. Start light and go up one step at a time until a set feels Good.</Note>
-      <ol className="flex flex-col gap-4" aria-label="Workouts">
+      <ol className="stagger flex flex-col gap-4" aria-label="Workouts">
         {plan.workouts.map((w) => (
           <li key={w.key} className="card p-4" data-workout={w.key}>
             <h2 className="flex items-baseline justify-between text-lg font-semibold">

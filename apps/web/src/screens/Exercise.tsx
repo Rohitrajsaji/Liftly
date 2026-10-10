@@ -231,7 +231,7 @@ export function Exercise({
         <section aria-label="Logged sets">
           <ol className="pressed divide-y divide-line rounded-3xl px-1" data-logged>
             {er.sets.map((s, i) => (
-              <li key={s.loggedAt + i} className="flex items-center justify-between px-4 py-3 text-base" data-logged-set>
+              <li key={s.loggedAt + i} className="pop flex items-center justify-between px-4 py-3 text-base" data-logged-set>
                 <span className="tabular-nums">
                   {s.kind === "ramp" ? "Warm-up" : `Set ${er.sets.slice(0, i + 1).filter((x) => x.kind === "working").length}`}: {formatKg(s.weightG)} kg × {s.reps}
                 </span>

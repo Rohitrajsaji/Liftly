@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildDebriefInput, type SessionRecord } from "@liftly/workout";
 import type { Backend, Session } from "./backend";
-import { claudeDebriefOn, ensureDebrief, MAX_ATTEMPTS, requestClaudeDebrief, retryPending } from "./debrief";
+import { claudeDebriefOn, ensureDebrief, resetDebrief, MAX_ATTEMPTS, requestClaudeDebrief, retryPending } from "./debrief";
 import type { DebriefRecord, LiftlyDb } from "./db";
 import type { Profile } from "./onboarding";
 
@@ -14,6 +14,8 @@ export interface Debriefs {
   readonly waiting: ReadonlySet<string>;
   /** Re-read after the setting or the account changed. */
   refresh(): Promise<void>;
+  /** Ask again for one workout (the "Try again" button). */
+  retry(sessionId: string): Promise<void>;
 }
 
 export function useDebriefs(db: LiftlyDb, backend: Backend | null, session: Session | null, profile: Profile, sessions: readonly SessionRecord[], finished: SessionRecord | null, online: boolean): Debriefs {
@@ -86,5 +88,14 @@ export function useDebriefs(db: LiftlyDb, backend: Backend | null, session: Sess
     return () => clearTimeout(t);
   }, [records, db, backend, session, online, load]);
 
-  return { records, waiting, refresh: load };
+  const retry = useCallback(
+    async (id: string) => {
+      await resetDebrief(db, id);
+      await load();
+      await ask(id);
+    },
+    [db, load, ask],
+  );
+
+  return { records, waiting, refresh: load, retry };
 }

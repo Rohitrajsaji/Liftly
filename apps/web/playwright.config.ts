@@ -5,7 +5,8 @@ export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
   reporter: process.env.CI ? "github" : "list",
-  use: { baseURL: "http://localhost:4173", trace: "retain-on-failure" },
+  // Reduced motion keeps the suite fast; e2e/motion.spec.ts runs the real animations.
+  use: { baseURL: "http://localhost:4173", trace: "retain-on-failure", contextOptions: { reducedMotion: "reduce" } },
   projects: [
     { name: "android", use: { ...devices["Pixel 7"] } },
     { name: "iphone-size", use: { ...devices["iPhone 14"], browserName: "chromium", defaultBrowserType: "chromium" } },

@@ -58,7 +58,7 @@ export function Workout({
         <span className="text-base text-muted">{session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} of {session.exercises.length} done</span>
         <ProgressDots done={session.exercises.filter((e) => e.status === "done" || e.status === "stopped_pain").length} total={session.exercises.length} />
       </div>
-      <ol className="flex flex-col gap-4" aria-label="Exercises" data-session-list>
+      <ol className="stagger flex flex-col gap-4" aria-label="Exercises" data-session-list>
         {session.exercises.map((er, i) => (
           <li key={er.slotOrder}>
             <button

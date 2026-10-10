@@ -16,7 +16,7 @@ What to create, what to change, and which values to send. About 15 minutes. All 
 4. **AI summaries (M8, optional until you want them).** Without this the app shows fixed summary text after each workout.
    - Run [`supabase/migrations/0003_debrief_log.sql`](supabase/migrations/0003_debrief_log.sql) in the SQL Editor (it only counts requests, to cap cost: 20 per account per day).
    - Create a free OpenRouter account and API key at openrouter.ai/keys (the default is the free `nvidia/nemotron-3-ultra-550b-a55b:free`, with `openrouter/free` as a backup if it is busy; to change the list add a secret `DEBRIEF_MODELS`, models separated by commas). **Do not paste it in the thread or the app.** In Supabase open **Edge Functions → Secrets** and add `OPENROUTER_API_KEY`.
-   - Deploy the function: in **Edge Functions → Deploy a new function → Via Editor**, name it `debrief`, paste [`supabase/functions/debrief/index.ts`](supabase/functions/debrief/index.ts), and deploy (leave "Verify JWT" on).
+   - Deploy the function: in **Edge Functions → Deploy a new function → Via Editor**, name it `debrief`, paste [`supabase/functions/debrief/index.ts`](supabase/functions/debrief/index.ts), and deploy (turn "Verify JWT" OFF: newer Supabase projects reject valid sign-in tokens at that gate; the function checks the signed-in user itself and refuses anyone else).
    - In the app: Account → AI workout summaries → Turn on. Each person chooses this themselves.
 5. **Send me two values** (both are safe to paste in the thread; they are designed to be public in the app):
    - **Project URL**, like `https://abcdxyz.supabase.co` (Project Settings → Data API or General)

@@ -43,6 +43,34 @@ export function App() {
   const [pending, setPending] = useState(0);
   const online = useOnline();
   const [claudeOn, setClaudeOn] = useState(false);
+  const backRef = useRef<(() => void) | null>(null);
+  const pushed = useRef(false);
+  const skipPop = useRef(false);
+  const hasBackRef = useRef(false);
+  // After every render: keep one history entry while a screen has a Back, so the phone's back gesture steps back in the app.
+  useEffect(() => {
+    if (hasBackRef.current && !pushed.current) {
+      history.pushState({ liftly: true }, "");
+      pushed.current = true;
+    } else if (!hasBackRef.current && pushed.current) {
+      // Reached a top-level screen by a button: drop the extra history entry so the phone's back doesn't do nothing once.
+      pushed.current = false;
+      skipPop.current = true;
+      history.back();
+    }
+  });
+  useEffect(() => {
+    const onPop = () => {
+      if (skipPop.current) {
+        skipPop.current = false;
+        return;
+      }
+      pushed.current = false;
+      backRef.current?.();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const install = useInstallPrompt();
   const main = useRef<HTMLElement>(null);
   const joining = useRef(false);
@@ -158,6 +186,38 @@ export function App() {
     await flush(s);
   };
 
+  // One place decides what "back" means on every screen. The header arrow, the on-screen Back buttons' siblings and the
+  // phone's own back gesture all use it, so going back never leaves the app by surprise.
+  const backAction: (() => void) | null = (() => {
+    if (view === "consent" || view === "auth" || view === "account") return () => setView("onboarding");
+    if (profile.step === "experience" || profile.step === "program") return () => update(back(profile));
+    if (!onboarded) return null;
+    switch (where) {
+      case "gym":
+      case "plan":
+      case "workout":
+        return () => setScreen("home");
+      case "exercise":
+      case "pain_result":
+        return () => setScreen("workout");
+      case "pain":
+        return () => setScreen("exercise");
+      case "summary":
+        return () => {
+          workout.leaveSummary();
+          setScreen("home");
+        };
+      default:
+        return null;
+    }
+  })();
+  backRef.current = backAction;
+  hasBackRef.current = backAction !== null;
+  const goBack = () => {
+    if (pushed.current) history.back();
+    else backRef.current?.();
+  };
+
   const accountButton =
     backend === null || view !== "onboarding" ? null : (
       <button type="button" onClick={() => setView(session === null ? "consent" : "account")} className="min-h-12 rounded-xl px-3 text-base font-medium text-accent underline">
@@ -168,7 +228,16 @@ export function App() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))]">
       <header className="flex min-h-14 items-center justify-between gap-3">
-        <span className="text-xl font-semibold tracking-tight">Liftly</span>
+        <span className="flex items-center gap-1">
+          {backAction !== null && (
+            <button type="button" onClick={goBack} aria-label="Previous screen" data-back className="raised -ml-1 grid size-12 place-items-center rounded-full text-ink fade-in">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
+          )}
+          <span className="text-xl font-semibold tracking-tight">Liftly</span>
+        </span>
         <span className="flex items-center gap-2">
           {!online && (
             <span role="status" className="pressed rounded-full px-3 py-1 text-sm text-muted">
@@ -276,7 +345,7 @@ export function App() {
           />
         )}
         {view === "onboarding" && onboarded && workout.ready && where === "progress" && <Progress sessions={workout.data.sessions} />}
-        {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "history" && <History sessions={workout.data.sessions} programId={workout.ctx.programId} debriefs={debriefs.records} />}
+        {view === "onboarding" && onboarded && workout.ready && workout.ctx !== null && where === "history" && <History sessions={workout.data.sessions} programId={workout.ctx.programId} debriefs={debriefs.records} onRetry={claudeOn ? (id) => void debriefs.retry(id) : undefined} />}
         {view === "onboarding" && onboarded && workout.ctx !== null && where === "gym" && (
           <GymSetup
             programId={workout.ctx.programId}
@@ -339,6 +408,7 @@ export function App() {
             accountPrompt={accountPrompt}
             debrief={debriefs.records[workout.finished.id]}
             waiting={debriefs.waiting.has(workout.finished.id)}
+            onRetry={claudeOn ? () => void debriefs.retry(workout.finished?.id ?? "") : undefined}
             onHome={() => {
               workout.leaveSummary();
               setScreen("home");

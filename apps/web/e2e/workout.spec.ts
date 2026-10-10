@@ -249,6 +249,25 @@ test.describe("with an account", () => {
   });
 });
 
+test("back works through the whole workout: exercise, list, today, and the phone's back gesture", async ({ page }) => {
+  await onboard(page);
+  await setupGym(page);
+  await page.getByRole("button", { name: "Start workout" }).click();
+  await expect(page.locator("[data-session-list]")).toBeVisible();
+  await page.locator("[data-exercise-row]").first().click();
+  await expect(page.locator("[data-effort=good]")).toBeVisible();
+  const back = page.getByRole("button", { name: "Previous screen" });
+  await back.click();
+  await expect(page.locator("[data-session-list]")).toBeVisible();
+  await page.locator("[data-exercise-row]").first().click();
+  await page.goBack();
+  await expect(page.locator("[data-session-list]")).toBeVisible();
+  await back.click();
+  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  // The workout is still there to continue.
+  await expect(page.getByRole("button", { name: "Continue workout" })).toBeVisible();
+});
+
 test.describe("Claude summary (M8)", () => {
   async function signedIn(page: Page, context: import("@playwright/test").BrowserContext) {
     const fake = new FakeSupabase();
@@ -328,6 +347,18 @@ test.describe("Claude summary (M8)", () => {
     await page.waitForTimeout(800);
     expect(fake.debriefCalls).toBe(1);
     await expect.poll(() => fake.events.size).toBe(1);
+  });
+
+  test("when the AI step fails the summary says why, and Try again recovers once the service is back", async ({ page, context }) => {
+    const fake = await signedIn(page, context);
+    await turnOn(page);
+    fake.debriefMode = "down";
+    await finishOne(page);
+    await expect(page.locator("[data-debrief-note]")).toContainText("didn't answer");
+    await expect(page.locator("[data-debrief-note]")).toContainText("HTTP 502");
+    fake.debriefMode = "ok";
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(page.locator("[data-debrief=claude]")).toContainText("You finished session 1");
   });
 
   test("Claude down: the workout and its targets are still saved with the fixed text; the retry can succeed", async ({ page, context }) => {

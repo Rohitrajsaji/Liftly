@@ -14,7 +14,7 @@ export function Button({ variant = "primary", className = "", ...rest }: ButtonP
 
 export function Screen({ title, children, actions, eyebrow, flow = false }: { readonly title: string; readonly children: ReactNode; readonly actions?: ReactNode; /** Small mono label above the title, like "TODAY". */ readonly eyebrow?: string; /** Actions follow the content instead of sticking to the bottom (used where they would cover the main buttons). */ readonly flow?: boolean }) {
   return (
-    <section className="flex flex-1 flex-col gap-5">
+    <section className="screen-in flex flex-1 flex-col gap-5">
       {eyebrow !== undefined && <p className="eyebrow -mb-3">{eyebrow}</p>}
       <h1 tabIndex={-1} className="text-2xl font-semibold leading-snug outline-none" data-screen-title>
         {title}

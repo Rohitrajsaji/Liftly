@@ -11,7 +11,7 @@ const longDate = (d: string): string => {
   return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, day ?? 1)).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 };
 
-export function History({ sessions, programId, debriefs }: { readonly sessions: readonly SessionRecord[]; readonly programId: "3-day" | "4-day"; readonly debriefs: Readonly<Record<string, DebriefRecord>> }) {
+export function History({ sessions, programId, debriefs, onRetry }: { readonly sessions: readonly SessionRecord[]; readonly programId: "3-day" | "4-day"; readonly debriefs: Readonly<Record<string, DebriefRecord>>; readonly onRetry?: ((sessionId: string) => void) | undefined }) {
   const items = history(sessions);
   const nameOf = (k: string): string => {
     try {
@@ -31,7 +31,7 @@ export function History({ sessions, programId, debriefs }: { readonly sessions: 
   }
   return (
     <Screen title="History">
-      <ol className="flex flex-col gap-4" aria-label="Workouts" data-history>
+      <ol className="stagger flex flex-col gap-4" aria-label="Workouts" data-history>
         {items.map((it) => (
           <li key={it.id} className="card p-4" data-history-item>
             <details>
@@ -43,9 +43,16 @@ export function History({ sessions, programId, debriefs }: { readonly sessions: 
                 <span className="text-sm text-muted">{it.completion === "full" ? "Complete" : "Partial"}</span>
               </summary>
               {debriefs[it.id] !== undefined && (
-                <p className="mt-3 text-sm text-muted" data-history-debrief>
-                  {debriefs[it.id]?.text}
-                </p>
+                <div className="mt-3">
+                  <p className="text-sm text-muted" data-history-debrief>
+                    {debriefs[it.id]?.text}
+                  </p>
+                  {onRetry !== undefined && debriefs[it.id]?.source === "fallback" && (
+                    <button type="button" onClick={() => onRetry(it.id)} className="min-h-12 rounded-xl text-sm font-medium text-accent underline" data-history-retry>
+                      Write the AI summary
+                    </button>
+                  )}
+                </div>
               )}
               <ul className="mt-3 divide-y divide-line">
                 {it.exercises.map((e) => (
