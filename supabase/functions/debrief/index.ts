@@ -127,11 +127,3 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   return rateLimited ? reply(429, { error: "rate limited", retry_after: retryAfterS || 60 }) : reply(502, { error: "no model answered" });
 });
-    if (!res.ok) return reply(res.status === 429 ? 429 : 502, { error: "upstream" });
-    const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
-    const out = extractJson(data.choices?.[0]?.message?.content ?? "");
-    return out === undefined ? reply(502, { error: "no output" }) : reply(200, out);
-  } catch {
-    return reply(504, { error: "timeout" });
-  }
-});

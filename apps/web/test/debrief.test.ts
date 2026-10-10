@@ -3,6 +3,7 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { DebriefInput, SessionRecord } from "@liftly/workout";
 import { BackendError, type Backend, type Session } from "../src/backend";
@@ -196,6 +197,10 @@ describe("opt-in", () => {
 
 describe("the debrief function (supabase/functions/debrief)", () => {
   const source = readFileSync(join(__dirname, "..", "..", "..", "supabase", "functions", "debrief", "index.ts"), "utf8");
+  it("is syntactically valid TypeScript (it is deployed by pasting it, so nothing else would catch a stray brace)", () => {
+    const r = ts.transpileModule(source, { reportDiagnostics: true, compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } });
+    expect((r.diagnostics ?? []).map((d) => ts.flattenDiagnosticMessageText(d.messageText, "\n"))).toEqual([]);
+  });
   it("checks the same consent version the app records", () => {
     expect(source).toContain(`const CONSENT_VERSION = "${DEBRIEF_CONSENT_VERSION}"`);
   });
